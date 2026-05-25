@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verdex AI Navigation Widget</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            verdex: {
+              black: '#030605',
+              dark: '#050c09',
+              green: '#081611',
+              primary: '#0b5e43',
+              accent: '#34d399',
+              light: '#10b981',
+              border: '#0f2c22'
+            }
+          },
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['Space Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    /* Premium style overrides for Leaflet */
+    .leaflet-container {
+      background: #030605 !important;
+    }
+    .leaflet-bar {
+      border: 1px solid rgba(11, 94, 67, 0.3) !important;
+      background: #081611 !important;
+    }
+    .leaflet-bar a {
+      background-color: #081611 !important;
+      color: #34d399 !important;
+      border-bottom: 1px solid rgba(11, 94, 67, 0.2) !important;
+      transition: all 0.2s ease;
+    }
+    .leaflet-bar a:hover {
+      background-color: #0b5e43 !important;
+      color: #ffffff !important;
+    }
+    .leaflet-control-attribution {
+      background: rgba(3, 6, 5, 0.85) !important;
+      color: #94a3b8 !important;
+      font-family: 'Space Mono', monospace;
+      font-size: 8px !important;
+      border-radius: 4px;
+      border: 1px solid rgba(11, 94, 67, 0.15);
+    }
+    .leaflet-tooltip {
+      background-color: #081611 !important;
+      border: 1px solid #0b5e43 !important;
+      color: #ffffff !important;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
+      border-radius: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    .leaflet-tooltip-left:before {
+      border-left-color: #0b5e43 !important;
+    }
+    .leaflet-tooltip-right:before {
+      border-right-color: #0b5e43 !important;
+    }
+
+    /* Custom scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #030605;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #0b5e43;
+      border-radius: 99px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #34d399;
+    }
+    
+    /* Input autocomplete custom styles */
+    .autocomplete-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="bg-verdex-black text-slate-200 font-sans h-screen w-screen flex flex-row overflow-hidden select-none">
+
+  <!-- Left Sidebar Panel -->
+  <aside class="w-[380px] h-full flex-shrink-0 bg-verdex-green border-r border-verdex-border flex flex-col z-[1000]">
+    
+    <!-- Widget Title Bar -->
+    <div class="px-5 py-4 border-b border-verdex-border flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-verdex-accent animate-pulse font-semibold">explore</span>
+        <div>
+          <h1 class="font-extrabold text-white tracking-widest text-lg font-sans">VERDEX <span class="text-verdex-accent text-xs font-mono font-normal">AI NAV</span></h1>
+          <p class="text-[9px] text-verdex-accent/60 uppercase font-mono tracking-wider">Multi-Route Optimization Engine</p>
+        </div>
+      </div>
+      <div class="px-2 py-0.5 rounded bg-verdex-primary/30 border border-verdex-primary text-[9px] text-verdex-accent font-mono">
+        v2.4
+      </div>
+    </div>
+
+    <!-- Live Weather Strip -->
+    <div id="weather-strip" class="px-5 py-3 border-b border-verdex-border bg-[#050e0a]/40 text-xs flex items-center justify-between transition-all duration-300">
+      <div class="flex items-center gap-3">
+        <div id="weather-icon" class="text-2xl filter drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">☀️</div>
+        <div>
+          <div id="weather-desc" class="font-semibold text-white">Loading Weather...</div>
+          <div id="weather-coords" class="text-[9.5px] text-slate-500 font-mono">31.5497, 74.3436</div>
+        </div>
+      </div>
+      <div class="text-right font-mono">
+        <div id="weather-temp" class="text-sm font-bold text-verdex-accent">--°C</div>
+        <div id="weather-wind" class="text-[9.5px] text-slate-400">Wind: -- km/h</div>
+        <div id="weather-vis" class="text-[9.5px] text-slate-400">Vis: -- km</div>
+      </div>
+    </div>
+
+    <!-- Main Scrollable Sidebar Section -->
+    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5 custom-scrollbar">
+
+      <!-- Geocoder Autocomplete Form -->
+      <div class="space-y-4">
+        
+        <!-- Origin Input Box -->
+        <div class="relative">
+          <label class="block text-[10px] text-verdex-accent font-mono uppercase tracking-wider mb-1">Origin Coordinates</label>
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px] text-emerald-500">location_on</span>
+              <input 
+                id="origin-input" 
+                type="text" 
+                autocomplete="off" 
+                class="w-full pl-8 pr-3 py-1.5 bg-[#030605] border border-verdex-border focus:border-emerald-500 rounded text-xs text-white placeholder-slate-600 focus:outline-none transition" 
+                placeholder="Search origin location..."
+              >
+            </div>
+            <button 
+              id="gps-button" 
+              title="Detect current location"
+              class="p-1.5 bg-[#030605] hover:bg-verdex-primary border border-verdex-border hover:border-emerald-500 text-emerald-500 hover:text-white rounded transition duration-200 flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-[16px]">my_location</span>
+            </button>
+          </div>
+          <!-- Autocomplete Dropdown List -->
+          <div id="origin-dropdown" class="absolute left-0 right-0 mt-1 bg-[#050c09] border border-verdex-border rounded-md shadow-2xl z-50 autocomplete-list hidden max-h-[160px] overflow-y-auto custom-scrollbar"></div>
+        </div>
+
+        <!-- Destination Input Box -->
+        <div class="relative">
+          <label class="block text-[10px] text-verdex-accent font-mono uppercase tracking-wider mb-1">Destination Coordinates</label>
+          <div class="relative">
+            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px] text-red-500">location_on</span>
+            <input 
+              id="dest-input" 
+              type="text" 
+              autocomplete="off" 
+              class="w-full pl-8 pr-3 py-1.5 bg-[#030605] border border-verdex-border focus:border-red-500 rounded text-xs text-white placeholder-slate-600 focus:outline-none transition" 
+              placeholder="Search destination..."
+            >
+          </div>
+          <!-- Autocomplete Dropdown List -->
+          <div id="dest-dropdown" class="absolute left-0 right-0 mt-1 bg-[#050c09] border border-verdex-border rounded-md shadow-2xl z-50 autocomplete-list hidden max-h-[160px] overflow-y-auto custom-scrollbar"></div>
+        </div>
+
+        <!-- Error notification banner -->
+        <div id="inline-error" class="hidden p-2 rounded bg-red-950/40 border border-red-800 text-[11px] text-red-400 flex items-start gap-2">
+          <span class="material-symbols-outlined text-[14px] mt-0.5">error</span>
+          <span id="error-message">Error encountered.</span>
+        </div>
+
+        <!-- "Analyze Routes" CTA Button -->
+        <button 
+          id="analyze-btn" 
+          class="w-full py-2 bg-gradient-to-r from-verdex-primary to-verdex-light hover:from-verdex-light hover:to-emerald-400 text-white hover:text-black font-semibold text-xs tracking-wider uppercase rounded shadow-[0_2px_10px_rgba(11,94,67,0.3)] hover:shadow-[0_2px_15px_rgba(52,211,153,0.5)] active:translate-y-[1px] transition-all duration-200 flex items-center justify-center gap-1.5"
+        >
+          <span class="material-symbols-outlined text-[16px]">calculate</span>
+          Analyze routes
+        </button>
+
+      </div>
+
+      <div class="border-t border-verdex-border/40"></div>
+
+      <!-- Scored Route Alternatives Cards Section -->
+      <div class="space-y-3">
+        <h2 class="text-[10px] text-verdex-accent font-mono uppercase tracking-wider">Optimized Route Alternatives</h2>
+        
+        <!-- Empty state placeholder / results loader -->
+        <div id="routes-container" class="space-y-3">
+          <div class="p-5 text-center border border-dashed border-verdex-border/60 rounded bg-[#030605]/30">
+            <span class="material-symbols-outlined text-slate-600 text-3xl mb-1.5 block">route</span>
+            <p class="text-xs text-slate-500">Pins coordinates or search values above, then click Analyze.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-verdex-border/40"></div>
+
+      <!-- AI Safety Agent Panel -->
+      <div class="bg-[#030605]/50 border border-verdex-border rounded-lg p-4 space-y-3.5">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-verdex-accent text-[18px]">security</span>
+            <h3 class="text-xs font-bold text-white tracking-wide uppercase font-sans">AI Safety Agent</h3>
+          </div>
+          <div class="text-[8px] text-slate-500 font-mono">LLAMA 4 17B</div>
+        </div>
+
+        <!-- Inline Key entry box (Now Backend Badge) -->
+        <div class="flex items-center gap-2 bg-verdex-green/80 border border-verdex-border rounded px-2.5 py-1.5 text-xs">
+          <span class="material-symbols-outlined text-[14px] text-emerald-400">vpn_key</span>
+          <span class="text-[10px] text-emerald-400 font-mono font-medium">Backend Groq API Key active</span>
+        </div>
+
+        <!-- Analysis Scanner Trigger -->
+        <button 
+          id="scan-btn" 
+          disabled
+          class="w-full py-1.5 bg-[#081611] hover:bg-verdex-primary border border-verdex-border disabled:border-verdex-border/40 hover:border-verdex-accent disabled:hover:border-verdex-border/40 text-slate-400 hover:text-white disabled:text-slate-600 rounded text-xs transition duration-200 flex items-center justify-center gap-1.5 font-medium cursor-not-allowed"
+        >
+          <span class="material-symbols-outlined text-[15px]">security</span>
+          Scan for Hazards
+        </button>
+
+        <!-- Response output box -->
+        <div id="safety-output" class="hidden space-y-3 border-t border-verdex-border/30 pt-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[9.5px] text-slate-500 font-mono uppercase tracking-wider">Safety Rating</span>
+            <span id="safety-badge" class="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono">--</span>
+          </div>
+          <p id="safety-text" class="text-[11px] leading-relaxed text-slate-300 font-sans"></p>
+        </div>
+
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Right Map Panel -->
+  <main id="map" class="flex-1 h-full relative z-[1]"></main>
+
+  <script>
+    // =========================================================================
+    // Geographic Bounding Box for Pakistan (PK) pre-filter
+    // =========================================================================
+    function inPakistan(lat, lon) {
+      return lat >= 23.63 && lat <= 37.09 && lon >= 60.87 && lon <= 77.84;
+    }
+
+    // =========================================================================
+    // Core Application State Variables
+    // =========================================================================
+    let map;
+    let originCoords = null;
+    let destCoords = null;
+    let originMarker = null;
+    let destMarker = null;
+    let weatherData = null;
+    
+    // Polyline routing tracking
+    let polylines = {
+      eco: null,
+      fastest: null,
+      safest: null
+    };
+    let routesData = [];
+    let selectedCategory = null;
+
+    // Open-Meteo current center weather debounce
+    let weatherTimeout = null;
+
+    // Auto-complete references
+    const originInput = document.getElementById('origin-input');
+    const originDropdown = document.getElementById('origin-dropdown');
+    const destInput = document.getElementById('dest-input');
+    const destDropdown = document.getElementById('dest-dropdown');
+    const inlineError = document.getElementById('inline-error');
+    const errorMessage = document.getElementById('error-message');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const routesContainer = document.getElementById('routes-container');
+    const scanBtn = document.getElementById('scan-btn');
+    const safetyOutput = document.getElementById('safety-output');
+    const safetyBadge = document.getElementById('safety-badge');
+    const safetyText = document.getElementById('safety-text');
+
+    // =========================================================================
+    // Initializer
+    // =========================================================================
+    window.addEventListener('load', () => {
+      initMap();
+      setupAutocomplete(originInput, originDropdown, 'origin');
+      setupAutocomplete(destInput, destDropdown, 'destination');
+      setupGPS();
+      
+      analyzeBtn.addEventListener('click', analyzeRoutes);
+      scanBtn.addEventListener('click', scanRoadSafety);
+    });
+
+    // =========================================================================
+    // Map Setup
+    // =========================================================================
+    function initMap() {
+      // Centered on Lahore (31.5497° N, 74.3436° E)
+      const lahoreCoords = [31.5497, 74.3436];
+      map = L.map('map', {
+        zoomControl: false // Hide default zoom for premium layout
+      }).setView(lahoreCoords, 12);
+
+      // Premium Zoom controls at top right
+      L.control.zoom({
+        position: 'topright'
+      }).addTo(map);
+
+      // Dark CartoDB tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20
+      }).addTo(map);
+
+      // Drag/move listener to dynamically update local weather strip
+      map.on('moveend', () => {
+        const center = map.getCenter();
+        debouncedFetchWeather(center.lat, center.lng);
+      });
+
+      // Initial weather load
+      fetchWeather(lahoreCoords[0], lahoreCoords[1]);
+
+      // Click to drop pins
+      map.on('click', onMapClick);
+    }
+
+    // =========================================================================
+    // Dynamic Weather Fetches
+    // =========================================================================
+    function debouncedFetchWeather(lat, lon) {
+      clearTimeout(weatherTimeout);
+      weatherTimeout = setTimeout(() => {
+        fetchWeather(lat, lon);
+      }, 500);
+    }
+
+    function fetchWeather(lat, lon) {
+      if (!inPakistan(lat, lon)) return;
+      document.getElementById('weather-coords').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,weather_code&hourly=visibility&forecast_days=1`;
+      
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error('Weather API issue');
+          return res.json();
+        })
+        .then(data => {
+          const temp = data.current.temperature_2m;
+          const wind = data.current.wind_speed_10m;
+          const code = data.current.weather_code;
+          
+          let visibility = 10000;
+          if (data.hourly && data.hourly.visibility && data.hourly.visibility.length > 0) {
+            visibility = data.hourly.visibility[0]; // grab first hour
+          }
+
+          weatherData = { temp, wind, visibility, code };
+
+          // Convert code to text / icon
+          const wInfo = getWeatherMeta(code);
+
+          // Update UI
+          document.getElementById('weather-icon').textContent = wInfo.icon;
+          document.getElementById('weather-desc').textContent = wInfo.text;
+          document.getElementById('weather-temp').textContent = `${Math.round(temp)}°C`;
+          document.getElementById('weather-wind').textContent = `Wind: ${wind.toFixed(0)} km/h`;
+          document.getElementById('weather-vis').textContent = `Vis: ${(visibility / 1000).toFixed(1)} km`;
+        })
+        .catch(err => {
+          console.warn('Weather fetch failed, falling back to Lahorean spring defaults:', err);
+          // Standard Lahore default values
+          weatherData = { temp: 32, wind: 12, visibility: 8000, code: 0 };
+          document.getElementById('weather-icon').textContent = '☀️';
+          document.getElementById('weather-desc').textContent = 'Clear Sky (Sim)';
+          document.getElementById('weather-temp').textContent = '32°C';
+          document.getElementById('weather-wind').textContent = 'Wind: 12 km/h';
+          document.getElementById('weather-vis').textContent = 'Vis: 8.0 km';
+        });
+    }
+
+    function getWeatherMeta(code) {
+      const mapping = {
+        0: { text: "Clear Sky", icon: "☀️" },
+        1: { text: "Mainly Clear", icon: "🌤️" },
+        2: { text: "Partly Cloudy", icon: "⛅" },
+        3: { text: "Overcast", icon: "☁️" },
+        45: { text: "Foggy", icon: "🌫️" },
+        48: { text: "Depositing Rime Fog", icon: "🌫️" },
+        51: { text: "Light Drizzle", icon: "🌧️" },
+        53: { text: "Drizzle", icon: "🌧️" },
+        55: { text: "Heavy Drizzle", icon: "🌧️" },
+        61: { text: "Slight Rain", icon: "🌦️" },
+        63: { text: "Moderate Rain", icon: "🌧️" },
+        65: { text: "Heavy Rain", icon: "🌧️" },
+        80: { text: "Slight Showers", icon: "🌦️" },
+        95: { text: "Thunderstorm", icon: "🌩️" }
+      };
+      return mapping[code] || { text: "Clear Conditions", icon: "☀️" };
+    }
+
+    // =========================================================================
+    // Geocoder Autocomplete
+    // =========================================================================
+    function setupAutocomplete(inputEl, dropdownEl, type) {
+      let autocompleteTimeout = null;
+
+      inputEl.addEventListener('input', () => {
+        clearTimeout(autocompleteTimeout);
+        const query = inputEl.value.trim();
+        
+        if (query.length < 3) {
+          dropdownEl.innerHTML = '';
+          dropdownEl.classList.add('hidden');
+          return;
+        }
+
+        autocompleteTimeout = setTimeout(() => {
+          const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1&countrycodes=pk`;
+          
+          fetch(url)
+            .then(res => {
+              if (!res.ok) throw new Error('Nominatim autocomplete rate limit');
+              return res.json();
+            })
+            .then(data => {
+              dropdownEl.innerHTML = '';
+              if (data.length === 0) {
+                dropdownEl.classList.add('hidden');
+                return;
+              }
+
+              dropdownEl.classList.remove('hidden');
+              data.forEach(item => {
+                const choice = document.createElement('div');
+                choice.className = 'px-3 py-2 text-[11px] hover:bg-verdex-primary border-b border-verdex-border/40 cursor-pointer text-slate-300 hover:text-white transition duration-150 truncate';
+                choice.textContent = item.display_name;
+                
+                choice.addEventListener('click', () => {
+                  inputEl.value = item.display_name;
+                  dropdownEl.classList.add('hidden');
+                  
+                  const coords = { lat: parseFloat(item.lat), lon: parseFloat(item.lon) };
+                  if (type === 'origin') {
+                    originCoords = coords;
+                    updateMapMarker('origin', coords);
+                  } else {
+                    destCoords = coords;
+                    updateMapMarker('destination', coords);
+                  }
+                  
+                  fitMarkers();
+                  clearInlineError();
+                });
+                
+                dropdownEl.appendChild(choice);
+              });
+            })
+            .catch(err => {
+              console.error(err);
+              showInlineError('Geocoder temporarily unavailable. Please try drop pin or clear text.');
+            });
+        }, 300);
+      });
+
+      // Close autocomplete on click outside
+      document.addEventListener('click', (e) => {
+        if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+          dropdownEl.classList.add('hidden');
+        }
+      });
+    }
+
+    // =========================================================================
+    // GPS / Browser Geolocation
+    // =========================================================================
+    function setupGPS() {
+      const gpsBtn = document.getElementById('gps-button');
+      
+      gpsBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          showInlineError('Geolocation API is not supported by your browser.');
+          return;
+        }
+
+        gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin text-emerald-400">sync</span>`;
+        gpsBtn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            if (!inPakistan(lat, lon)) {
+              showInlineError('GPS location is outside of Pakistan boundaries.');
+              gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">my_location</span>`;
+              gpsBtn.disabled = false;
+              return;
+            }
+            originCoords = { lat, lon };
+
+            updateMapMarker('origin', originCoords);
+            map.setView([lat, lon], 14);
+            reverseGeocode(lat, lon, 'origin');
+
+            gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">my_location</span>`;
+            gpsBtn.disabled = false;
+            clearInlineError();
+          },
+          (err) => {
+            console.error(err);
+            showInlineError('GPS failed to capture location coordinates.');
+            gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">my_location</span>`;
+            gpsBtn.disabled = false;
+          },
+          { enableHighAccuracy: true, timeout: 6000 }
+        );
+      });
+    }
+
+    // =========================================================================
+    // Reverse Geocoding
+    // =========================================================================
+    function reverseGeocode(lat, lon, type) {
+      if (!inPakistan(lat, lon)) return;
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+      
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const name = data.display_name || `Location at ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+          if (type === 'origin') {
+            originInput.value = name;
+          } else {
+            destInput.value = name;
+          }
+          clearInlineError();
+        })
+        .catch(err => {
+          console.warn('Reverse geocode error:', err);
+          const fallback = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+          if (type === 'origin') {
+            originInput.value = fallback;
+          } else {
+            destInput.value = fallback;
+          }
+        });
+    }
+
+    // =========================================================================
+    // Pin Drop Interactions
+    // =========================================================================
+    function onMapClick(e) {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+      if (!inPakistan(lat, lon)) {
+        showInlineError('Selected location must be within Pakistan boundaries.');
+        return;
+      }
+
+      if (!originCoords) {
+        originCoords = { lat, lon };
+        updateMapMarker('origin', originCoords);
+        reverseGeocode(lat, lon, 'origin');
+      } else if (!destCoords) {
+        destCoords = { lat, lon };
+        updateMapMarker('destination', destCoords);
+        reverseGeocode(lat, lon, 'destination');
+        fitMarkers();
+      } else {
+        // If both exist, clicking updates the destination pin
+        destCoords = { lat, lon };
+        updateMapMarker('destination', destCoords);
+        reverseGeocode(lat, lon, 'destination');
+        fitMarkers();
+      }
+    }
+
+    // =========================================================================
+    // Draw / Drag Map Markers
+    // =========================================================================
+    function updateMapMarker(type, coords) {
+      const customIcon = L.divIcon({
+        className: 'custom-div-marker',
+        html: type === 'origin' 
+          ? `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]">
+               <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></div>
+             </div>`
+          : `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/20 border border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]">
+               <div class="w-3.5 h-3.5 rounded-full bg-red-500"></div>
+             </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      if (type === 'origin') {
+        if (originMarker) {
+          originMarker.setLatLng([coords.lat, coords.lon]);
+        } else {
+          originMarker = L.marker([coords.lat, coords.lon], { icon: customIcon, draggable: true }).addTo(map);
+          originMarker.on('dragend', (e) => {
+            const pos = e.target.getLatLng();
+            if (!inPakistan(pos.lat, pos.lng)) {
+              showInlineError('Dropped pin is outside of Pakistan boundaries.');
+              originMarker.setLatLng([originCoords.lat, originCoords.lon]);
+              return;
+            }
+            originCoords = { lat: pos.lat, lon: pos.lng };
+            reverseGeocode(pos.lat, pos.lng, 'origin');
+            fitMarkers();
+          });
+        }
+      } else {
+        if (destMarker) {
+          destMarker.setLatLng([coords.lat, coords.lon]);
+        } else {
+          destMarker = L.marker([coords.lat, coords.lon], { icon: customIcon, draggable: true }).addTo(map);
+          destMarker.on('dragend', (e) => {
+            const pos = e.target.getLatLng();
+            if (!inPakistan(pos.lat, pos.lng)) {
+              showInlineError('Dropped pin is outside of Pakistan boundaries.');
+              destMarker.setLatLng([destCoords.lat, destCoords.lon]);
+              return;
+            }
+            destCoords = { lat: pos.lat, lon: pos.lng };
+            reverseGeocode(pos.lat, pos.lng, 'destination');
+            fitMarkers();
+          });
+        }
+      }
+    }
+
+    function fitMarkers() {
+      if (originCoords && destCoords) {
+        const bounds = L.latLngBounds(
+          [originCoords.lat, originCoords.lon],
+          [destCoords.lat, destCoords.lon]
+        );
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
+    }
+
+    // =========================================================================
+    // OSRM Routes Fetching & Scoring
+    // =========================================================================
+    function analyzeRoutes() {
+      if (!originCoords || !destCoords) {
+        showInlineError('Please input or select both Origin and Destination first.');
+        return;
+      }
+      if (!inPakistan(originCoords.lat, originCoords.lon) || !inPakistan(destCoords.lat, destCoords.lon)) {
+        showInlineError('Routes are restricted to Pakistan (PK) boundaries.');
+        return;
+      }
+
+      clearInlineError();
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin">sync</span> Analyzing...`;
+      routesContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 space-y-2 border border-verdex-border/40 rounded bg-[#030605]/25 animate-pulse">
+          <div class="w-6 h-6 border-2 border-verdex-accent border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-[11px] text-slate-500 font-mono">Running OSRM analytics...</p>
+        </div>
+      `;
+
+      // Clear any prior polylines
+      Object.keys(polylines).forEach(key => {
+        if (polylines[key]) {
+          map.removeLayer(polylines[key]);
+          polylines[key] = null;
+        }
+      });
+
+      // Fetch driving route alternatives (alternatives=true gets secondary routes)
+      const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?alternatives=true&geometries=geojson&overview=full`;
+
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error('OSRM mapping engine returned invalid coordinates or was unresponsive.');
+          return res.json();
+        })
+        .then(data => {
+          if (!data.routes || data.routes.length === 0) {
+            throw new Error('No driving routes found between coordinates.');
+          }
+
+          processRoutes(data.routes);
+        })
+        .catch(err => {
+          console.error(err);
+          showInlineError(err.message || 'Route service currently offline.');
+          routesContainer.innerHTML = `
+            <div class="p-5 text-center border border-dashed border-red-900/30 rounded bg-red-950/10">
+              <span class="material-symbols-outlined text-red-500 text-3xl mb-1.5 block">report_problem</span>
+              <p class="text-xs text-red-400">Failed to analyze routes.</p>
+            </div>
+          `;
+        })
+        .finally(() => {
+          analyzeBtn.disabled = false;
+          analyzeBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">calculate</span> Analyze routes`;
+        });
+    }
+
+    function processRoutes(rawRoutes) {
+      // 1. Format routes
+      routesData = rawRoutes.map((route, i) => {
+        const distKm = route.distance / 1000.0;
+        const durMin = route.duration / 60.0;
+        const speed = distKm / (durMin / 60.0); // km/h
+        const co2G = Math.round(distKm * 210); // Standard car is ~210g CO2 per km
+
+        return {
+          index: i,
+          distance: distKm,
+          duration: durMin,
+          avgSpeed: speed,
+          co2: co2G,
+          geometry: route.geometry
+        };
+      });
+
+      // 2. Score calculations
+      // Weather penalty derived from wind speed and visibility
+      let windVal = weatherData ? weatherData.wind : 10;
+      let visVal = weatherData ? weatherData.visibility : 10000;
+      
+      let normWind = Math.min(1.0, windVal / 60.0);
+      let normVis = Math.max(0.0, 1.0 - (visVal / 10000.0));
+      let weatherPenalty = (normWind + normVis) / 2.0; // range 0 to 1
+
+      // Find max values for normalization
+      let maxDist = Math.max(...routesData.map(r => r.distance));
+      let maxDur = Math.max(...routesData.map(r => r.duration));
+      if (maxDist === 0) maxDist = 1;
+      if (maxDur === 0) maxDur = 1;
+
+      const scored = routesData.map(r => {
+        let normD = r.distance / maxDist;
+        let normT = r.duration / maxDur;
+
+        // Composite weights
+        let ecoScore = (0.5 * normD) + (0.2 * normT) + (0.3 * weatherPenalty);
+        let speedScore = (0.1 * normD) + (0.6 * normT) + (0.3 * weatherPenalty);
+        let safetyScore = (0.2 * normD) + (0.2 * normT) + (0.6 * weatherPenalty);
+
+        return {
+          ...r,
+          ecoScore,
+          speedScore,
+          safetyScore
+        };
+      });
+
+      // 3. Assign lowest score per category
+      const ecoRoute = scored.reduce((prev, curr) => prev.ecoScore < curr.ecoScore ? prev : curr);
+      const speedRoute = scored.reduce((prev, curr) => prev.speedScore < curr.speedScore ? prev : curr);
+      const safetyRoute = scored.reduce((prev, curr) => prev.safetyScore < curr.safetyScore ? prev : curr);
+
+      // Store selection mapping
+      routesData = {
+        eco: ecoRoute,
+        fastest: speedRoute,
+        safest: safetyRoute
+      };
+
+      // 4. Render route cards
+      routesContainer.innerHTML = '';
+      
+      renderRouteCard('eco', 'Eco Green', 'eco', ecoRoute, 'text-emerald-400');
+      renderRouteCard('fastest', 'Fastest', 'speed', speedRoute, 'text-blue-400');
+      renderRouteCard('safest', 'Safest', 'shield_with_heart', safetyRoute, 'text-orange-400');
+
+      // 5. Draw map lines
+      // Draw Eco Green (Green)
+      polylines.eco = L.geoJSON(ecoRoute.geometry, {
+        style: { color: '#10b981', weight: 4, opacity: 0.6 }
+      }).addTo(map);
+      polylines.eco.bindTooltip('Eco Green Route', { sticky: true });
+
+      // Draw Fastest (Blue)
+      polylines.fastest = L.geoJSON(speedRoute.geometry, {
+        style: { color: '#3b82f6', weight: 4, opacity: 0.6 }
+      }).addTo(map);
+      polylines.fastest.bindTooltip('Fastest Route', { sticky: true });
+
+      // Draw Safest (Orange)
+      polylines.safest = L.geoJSON(safetyRoute.geometry, {
+        style: { color: '#f97316', weight: 4, opacity: 0.6 }
+      }).addTo(map);
+      polylines.safest.bindTooltip('Safest Route', { sticky: true });
+
+      // Highlight the first route (Eco Green) by default
+      selectRoute('eco');
+      toggleScanButtonState();
+    }
+
+    function renderRouteCard(key, label, icon, route, colorClass) {
+      const card = document.createElement('div');
+      card.id = `card-${key}`;
+      card.className = `route-card p-3 bg-[#030605]/50 hover:bg-[#030605]/80 border border-verdex-border/60 hover:border-emerald-500/40 rounded-lg cursor-pointer transition-all duration-300 flex items-start justify-between select-none`;
+      
+      card.innerHTML = `
+        <div class="space-y-1">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] ${colorClass}">${icon}</span>
+            <span class="text-xs font-bold text-white uppercase tracking-wide font-sans">${label}</span>
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono space-x-2">
+            <span>${route.distance.toFixed(1)} km</span>
+            <span class="text-slate-600">•</span>
+            <span>${route.duration.toFixed(0)} mins</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs font-bold font-mono text-emerald-400">${route.co2}g</div>
+          <div class="text-[9px] text-slate-500 font-mono tracking-tighter">CO₂ Est.</div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => selectRoute(key));
+      routesContainer.appendChild(card);
+    }
+
+    let lastSavedRouteKey = null;
+
+    function saveRouteToBackend(route, category) {
+      const userDataStr = localStorage.getItem('verdex_user');
+      const user = userDataStr ? JSON.parse(userDataStr) : null;
+      const userId = user ? user.user_id : 'demo-user-00000000-0000-0000-0000-000000000001';
+
+      const body = {
+        user_id: userId,
+        origin: { lat: originCoords.lat, lng: originCoords.lon },
+        destination: { lat: destCoords.lat, lng: destCoords.lon },
+        preferences: { max_walk_time_mins: 10 }
+      };
+
+      const BACKEND_URL = 'http://localhost:8000';
+
+      fetch(`${BACKEND_URL}/api/routes/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        console.log('Route successfully saved to backend database:', data);
+        // Notify parent window to update dashboard stats!
+        window.parent.postMessage({ type: 'ROUTE_SAVED' }, '*');
+      })
+      .catch(err => {
+        console.error('Error saving route to backend database:', err);
+      });
+    }
+
+    function selectRoute(category) {
+      selectedCategory = category;
+
+      // Highlight polyline on map
+      // Reset all styles to original faded look
+      if (polylines.eco) polylines.eco.setStyle({ color: '#10b981', weight: 4, opacity: 0.4 });
+      if (polylines.fastest) polylines.fastest.setStyle({ color: '#3b82f6', weight: 4, opacity: 0.4 });
+      if (polylines.safest) polylines.safest.setStyle({ color: '#f97316', weight: 4, opacity: 0.4 });
+
+      // Set active polyline
+      const activeLine = polylines[category];
+      const activeColor = category === 'eco' ? '#10b981' : (category === 'fastest' ? '#3b82f6' : '#f97316');
+      
+      if (activeLine) {
+        activeLine.setStyle({ color: activeColor, weight: 7, opacity: 0.95 });
+        activeLine.bringToFront();
+        map.fitBounds(activeLine.getBounds(), { padding: [50, 50] });
+      }
+
+      // Update card visual highlight classes
+      document.querySelectorAll('.route-card').forEach(c => {
+        c.classList.remove('border-emerald-500', 'bg-verdex-primary/10', 'shadow-[0_0_10px_rgba(52,211,153,0.15)]');
+      });
+      const selectedCard = document.getElementById(`card-${category}`);
+      if (selectedCard) {
+        selectedCard.classList.add('border-emerald-500', 'bg-verdex-primary/10', 'shadow-[0_0_10px_rgba(52,211,153,0.15)]');
+      }
+
+      // Clear safety outputs on selection change so the user can scan the fresh selection
+      safetyOutput.classList.add('hidden');
+
+      // Auto-trigger safety analysis on selection
+      scanRoadSafety();
+
+      // Save selected route to backend database (deduplicated)
+      const route = routesData[category];
+      const routeKey = `${originCoords.lat.toFixed(4)},${originCoords.lon.toFixed(4)}-${destCoords.lat.toFixed(4)},${destCoords.lon.toFixed(4)}-${category}`;
+      if (lastSavedRouteKey !== routeKey) {
+        lastSavedRouteKey = routeKey;
+        saveRouteToBackend(route, category);
+      }
+    }
+
+    // =========================================================================
+    // Button states / API validation checks
+    // =========================================================================
+    function toggleScanButtonState() {
+      const hasRoute = routesData && routesData[selectedCategory];
+
+      if (hasRoute) {
+        scanBtn.disabled = false;
+        scanBtn.classList.remove('cursor-not-allowed', 'opacity-50');
+      } else {
+        scanBtn.disabled = true;
+        scanBtn.classList.add('cursor-not-allowed', 'opacity-50');
+      }
+    }
+
+    // =========================================================================
+    // Groq AI Safety Agent Request
+    // =========================================================================
+    function scanRoadSafety() {
+      const route = routesData && routesData[selectedCategory];
+      if (!route) {
+        showInlineError('Please analyze routes and select one before scanning.');
+        return;
+      }
+
+      clearInlineError();
+      scanBtn.disabled = true;
+      scanBtn.innerHTML = `<span class="material-symbols-outlined text-[15px] animate-spin">sync</span> Scanning...`;
+      
+      safetyOutput.classList.remove('hidden');
+      safetyBadge.className = 'px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono bg-slate-800 text-slate-400';
+      safetyBadge.textContent = 'SCANNING...';
+      safetyText.innerHTML = `<span class="italic text-slate-500 animate-pulse block">Running live route safety analysis...</span>`;
+
+      const originName = originInput.value.split(',')[0].trim() || 'Origin Location';
+      const destName = destInput.value.split(',')[0].trim() || 'Destination Location';
+      const distance = route.distance;
+
+      // Extract waypoints & representative coordinate
+      const coords = route.geometry.coordinates; // array of [lon, lat]
+      const midIndex = Math.floor(coords.length / 2);
+      const midPoint = coords[midIndex];
+      const repLat = midPoint[1];
+      const repLon = midPoint[0];
+
+      // Bounding box for TomTom: minLon,minLat,maxLon,maxLat expanded by 0.5 degrees
+      let minLat = Infinity, maxLat = -Infinity;
+      let minLon = Infinity, maxLon = -Infinity;
+      coords.forEach(pt => {
+        const lon = pt[0];
+        const lat = pt[1];
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+      });
+      minLat -= 0.5;
+      maxLat += 0.5;
+      minLon -= 0.5;
+      maxLon += 0.5;
+      const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+
+      const BACKEND_URL = 'http://localhost:8000';
+
+      // 4 API calls in parallel
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${repLat}&longitude=${repLon}&current=temperature_2m,precipitation,windspeed_10m,weathercode`;
+      const trafficUrl = `${BACKEND_URL}/api/traffic/incidents?bbox=${bbox}`;
+      const openaqUrl = `https://api.openaq.org/v2/latest?coordinates=${repLat},${repLon}&radius=25000`;
+      const disastersUrl = `https://api.reliefweb.int/v1/disasters?appname=routeapp&query[value]=Pakistan&filter[field]=status&filter[value]=ongoing`;
+
+      Promise.all([
+        fetch(weatherUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) })),
+        fetch(trafficUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) })),
+        fetch(openaqUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) })),
+        fetch(disastersUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) }))
+      ])
+      .then(([weatherRes, trafficRes, openaqRes, disastersRes]) => {
+        const weatherPayload = (weatherRes && !weatherRes.error) ? weatherRes : { status: "unavailable", error: weatherRes?.message || "Failed to fetch weather data" };
+        const trafficPayload = (trafficRes && !trafficRes.error) ? trafficRes : { status: "unavailable", error: trafficRes?.message || "Failed to fetch traffic incidents" };
+        const aqPayload = (openaqRes && !openaqRes.error) ? openaqRes : { status: "unavailable", error: openaqRes?.message || "Failed to fetch air quality data" };
+        const disasterPayload = (disastersRes && !disastersRes.error) ? disastersRes : { status: "unavailable", error: disastersRes?.message || "Failed to fetch disaster alerts" };
+
+        const analyzeBody = {
+          origin: originName,
+          destination: destName,
+          distance: distance,
+          rep_coord: { lat: repLat, lng: repLon },
+          waypoints: coords,
+          weather: weatherPayload,
+          traffic: trafficPayload,
+          air_quality: aqPayload,
+          disasters: disasterPayload
+        };
+
+        return fetch(`${BACKEND_URL}/api/routes/analyze`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(analyzeBody)
+        });
+      })
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(errData => {
+            throw new Error(errData.detail || `Server returned ${res.status}`);
+          });
+        }
+        return res.json();
+      })
+      .then(data => {
+        let analysis = data.analysis;
+        if (typeof analysis === 'string') {
+          analysis = JSON.parse(analysis);
+        }
+        displayAnalysis(analysis);
+      })
+      .catch(err => {
+        console.error(err);
+        safetyBadge.textContent = 'ERROR';
+        safetyBadge.className = 'px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono bg-red-950/40 text-red-400 border border-red-500/40';
+        safetyText.innerHTML = `<span class="text-red-400 font-mono text-[10.5px]">Analysis error: ${err.message}</span>`;
+      })
+      .finally(() => {
+        scanBtn.disabled = false;
+        scanBtn.innerHTML = `<span class="material-symbols-outlined text-[15px]">security</span> Scan for Hazards`;
+        toggleScanButtonState();
+      });
+    }
+
+    function displayAnalysis(analysis) {
+      safetyOutput.classList.remove('hidden');
+
+      let rating = 'CAUTION';
+      let badgeClass = 'bg-amber-950/40 text-amber-400 border border-amber-500/40';
+      const rec = (analysis.recommendation || '').toLowerCase();
+      if (rec.includes('proceed') || rec.includes('safe')) {
+        rating = 'PROCEED';
+        badgeClass = 'bg-emerald-950/40 text-emerald-400 border border-emerald-500/40';
+      } else if (rec.includes('avoid') || rec.includes('dangerous') || rec.includes('danger')) {
+        rating = 'AVOID';
+        badgeClass = 'bg-red-950/40 text-red-400 border border-red-500/40';
+      } else if (rec.includes('alternate') || rec.includes('caution')) {
+        rating = 'ALT ROUTE';
+        badgeClass = 'bg-amber-950/40 text-amber-400 border border-amber-500/40';
+      } else {
+        rating = rec.toUpperCase() || 'CAUTION';
+      }
+
+      const score = analysis.safety_score || '-';
+      safetyBadge.textContent = `${rating} (${score}/10)`;
+      safetyBadge.className = `px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono ${badgeClass}`;
+
+      safetyText.innerHTML = `
+        <div class="space-y-2.5 mt-2">
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[15px] text-sky-400 mt-0.5">partly_cloudy_day</span>
+            <div class="flex-1">
+              <span class="font-bold text-[10px] text-sky-400 uppercase tracking-wide">Weather Summary</span>
+              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.weather_summary || 'N/A'}</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[15px] text-amber-400 mt-0.5">warning</span>
+            <div class="flex-1">
+              <span class="font-bold text-[10px] text-amber-400 uppercase tracking-wide">Traffic & Blockages</span>
+              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.traffic_warning || 'N/A'}</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[15px] text-orange-400 mt-0.5">construction</span>
+            <div class="flex-1">
+              <span class="font-bold text-[10px] text-orange-400 uppercase tracking-wide">Incidents & Construction</span>
+              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.incidents_construction || 'N/A'}</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[15px] text-emerald-400 mt-0.5">air</span>
+            <div class="flex-1">
+              <span class="font-bold text-[10px] text-emerald-400 uppercase tracking-wide">Air Quality Advisory</span>
+              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.air_quality_advisory || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // Inline Errors & Notifications
+    // =========================================================================
+    function showInlineError(msg) {
+      errorMessage.textContent = msg;
+      inlineError.classList.remove('hidden');
+      setTimeout(() => {
+        clearInlineError();
+      }, 7000);
+    }
+
+    function clearInlineError() {
+      inlineError.classList.add('hidden');
+    }
+
+  </script>
+</body>
+</html>

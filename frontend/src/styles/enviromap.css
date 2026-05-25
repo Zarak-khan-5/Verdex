@@ -1,0 +1,496 @@
+/* ============================================================
+   Verdex — EnviroMap Real-Time City Layers Styles
+   ============================================================ */
+
+/* ---- Page Layout ---- */
+.enviro-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #030605;
+  color: #e2e8f0;
+  font-family: 'DM Sans', 'Inter', sans-serif;
+}
+
+/* ---- Top Bar ---- */
+.enviro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: #081611;
+  border-bottom: 1px solid #1e2128;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.enviro-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.enviro-logo-text {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #fff;
+}
+
+.enviro-logo-text span {
+  color: #0b5e43;
+}
+
+.enviro-back-btn {
+  font-size: 11px;
+  color: #64748b;
+  background: #1e2128;
+  border: 1px solid #2e3340;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+  margin-left: 12px;
+}
+
+.enviro-back-btn:hover {
+  color: #e2e8f0;
+  border-color: #0b5e43;
+}
+
+.enviro-layer-tabs {
+  display: flex;
+  gap: 4px;
+  background: #030605;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #1e2128;
+}
+
+.enviro-layer-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.enviro-layer-tab:hover {
+  color: #e2e8f0;
+  background: #1e2128;
+}
+
+.enviro-layer-tab.active {
+  color: #fff;
+}
+
+.enviro-layer-tab .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.enviro-layer-tab[data-layer="temperature"] .dot { background: #ff6b35; }
+.enviro-layer-tab[data-layer="aqi"] .dot { background: #4ade80; }
+.enviro-layer-tab[data-layer="rain"] .dot { background: #38bdf8; }
+.enviro-layer-tab[data-layer="traffic"] .dot { background: #f59e0b; }
+
+.enviro-layer-tab[data-layer="temperature"].active { background: rgba(255, 107, 53, 0.2); }
+.enviro-layer-tab[data-layer="aqi"].active { background: rgba(74, 222, 128, 0.2); }
+.enviro-layer-tab[data-layer="rain"].active { background: rgba(56, 189, 248, 0.2); }
+.enviro-layer-tab[data-layer="traffic"].active { background: rgba(245, 158, 11, 0.2); }
+
+.enviro-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.enviro-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: enviro-pulse 2s infinite;
+}
+
+@keyframes enviro-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ---- Main Layout ---- */
+.enviro-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Map Container ---- */
+.enviro-map-wrapper {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.enviro-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- Loading Overlay ---- */
+.enviro-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 12, 16, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 16px;
+  transition: opacity 0.4s;
+}
+
+.enviro-loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.enviro-spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #1e2128;
+  border-top-color: #ff6b35;
+  border-radius: 50%;
+  animation: enviro-spin 0.8s linear infinite;
+}
+
+@keyframes enviro-spin {
+  to { transform: rotate(360deg); }
+}
+
+.enviro-loading-text {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: #64748b;
+  letter-spacing: 0.1em;
+}
+
+/* ---- Sidebar ---- */
+.enviro-sidebar {
+  width: 280px;
+  background: #111318;
+  border-left: 1px solid #1e2128;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.enviro-sidebar::-webkit-scrollbar { width: 4px; }
+.enviro-sidebar::-webkit-scrollbar-track { background: transparent; }
+.enviro-sidebar::-webkit-scrollbar-thumb { background: #1e2128; border-radius: 2px; }
+
+.enviro-sidebar-section {
+  padding: 18px;
+  border-bottom: 1px solid #1e2128;
+}
+
+.enviro-sidebar-section:last-child {
+  border-bottom: none;
+}
+
+.enviro-section-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* ---- Search Box ---- */
+.enviro-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0a0c10;
+  border: 1px solid #1e2128;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.enviro-search-box input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #e2e8f0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+}
+
+.enviro-search-box input::placeholder {
+  color: #64748b;
+}
+
+.enviro-search-btn {
+  width: 100%;
+  padding: 7px;
+  background: #1e2128;
+  border: 1px solid #2e3340;
+  border-radius: 5px;
+  color: #e2e8f0;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+
+.enviro-search-btn:hover {
+  border-color: #0b5e43;
+  background: #2e3340;
+}
+
+/* ---- Metric Cards ---- */
+.enviro-metric-card {
+  background: #0a0c10;
+  border: 1px solid #1e2128;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+
+.enviro-metric-card:hover {
+  border-color: #2e3340;
+}
+
+.enviro-metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.enviro-metric-name {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.enviro-metric-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #1e2128;
+  color: #94a3b8;
+}
+
+.enviro-metric-value {
+  font-family: 'Space Mono', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.enviro-metric-unit {
+  font-size: 13px;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+.enviro-metric-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* ---- Legend ---- */
+.enviro-legend-bar {
+  height: 8px;
+  border-radius: 4px;
+  margin: 8px 0 4px;
+}
+
+.enviro-legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: #64748b;
+}
+
+/* ---- Opacity Control ---- */
+.enviro-opacity-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.enviro-opacity-control label {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.enviro-opacity-control input[type=range] {
+  flex: 1;
+  accent-color: #ff6b35;
+  height: 3px;
+  cursor: pointer;
+  background: transparent;
+}
+
+/* ---- Sensor List ---- */
+.enviro-sensor-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #1e2128;
+  font-size: 12px;
+}
+
+.enviro-sensor-item:last-child {
+  border-bottom: none;
+}
+
+.enviro-sensor-coords {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.enviro-sensor-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---- Data Sources ---- */
+.enviro-sources {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.8;
+}
+
+.enviro-sources span {
+  color: #e2e8f0;
+}
+
+/* ---- Leaflet Popup Overrides ---- */
+.enviro-page .leaflet-popup-content-wrapper {
+  background: #111318 !important;
+  border: 1px solid #1e2128 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  color: #e2e8f0 !important;
+}
+
+.enviro-page .leaflet-popup-tip {
+  background: #111318 !important;
+}
+
+.enviro-page .leaflet-popup-content {
+  margin: 12px 14px !important;
+  font-size: 12px;
+}
+
+.enviro-popup-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: #64748b;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.enviro-popup-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 12px;
+}
+
+.enviro-popup-val {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+}
+
+/* ---- Leaflet Control Overrides ---- */
+.enviro-page .leaflet-control-zoom {
+  border: 1px solid #1e2128 !important;
+  background: #111318 !important;
+}
+
+.enviro-page .leaflet-control-zoom a {
+  background: #111318 !important;
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid #1e2128 !important;
+}
+
+.enviro-page .leaflet-control-zoom a:hover {
+  background: #1e2128 !important;
+}
+
+.enviro-page .leaflet-container {
+  background: #0a0c10;
+  border-radius: 0;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .enviro-main {
+    flex-direction: column;
+  }
+
+  .enviro-sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-left: none;
+    border-top: 1px solid #1e2128;
+  }
+
+  .enviro-layer-tabs {
+    gap: 2px;
+  }
+
+  .enviro-layer-tab {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .enviro-header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .enviro-back-btn {
+    display: none;
+  }
+}

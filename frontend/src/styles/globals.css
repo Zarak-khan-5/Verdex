@@ -1,0 +1,284 @@
+@import "tailwindcss";
+
+@custom-variant light (.light &);
+
+/* ============================================================
+   Verdex — Global Design Tokens & Base Styles
+   ============================================================ */
+
+@theme {
+  --color-verdex-primary: #0b5e43;
+  --color-verdex-primary-dark: #07412e;
+  --color-verdex-primary-light: #108560;
+  --color-verdex-accent: #06b6d4;
+  --color-verdex-accent-dark: #0891b2;
+  --color-verdex-dark: #030605;
+  --color-verdex-dark-card: #081611;
+  --color-verdex-dark-surface: #0f271e;
+  --color-verdex-text: #f8fafc;
+  --color-verdex-text-muted: #94a3b8;
+  --color-verdex-danger: #ef4444;
+  --color-verdex-warning: #f59e0b;
+  --color-verdex-success: #0b5e43;
+
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Obsidian Forest Palette */
+  --color-surface: #030605;
+  --color-surface-dim: #030605;
+  --color-surface-bright: #0f271e;
+  --color-surface-container-lowest: #020403;
+  --color-surface-container-low: #060e0a;
+  --color-surface-container: #081611;
+  --color-surface-container-high: #0f271e;
+  --color-surface-container-highest: #143529;
+  --color-on-surface: #e0e2ee;
+  --color-on-surface-variant: #bec9c2;
+  --color-inverse-surface: #e0e2ee;
+  --color-inverse-on-surface: #2d303a;
+  --color-outline: #89938d;
+  --color-outline-variant: #3f4944;
+  --color-surface-tint: #0b5e43;
+  --color-primary: #0b5e43;
+  --color-on-primary: #003828;
+  --color-primary-container: #07412e;
+  --color-on-primary-container: #a7f3d0;
+  --color-inverse-primary: #07412e;
+  --color-secondary: #bcc7de;
+  --color-on-secondary: #263143;
+  --color-secondary-container: #3e495d;
+  --color-on-secondary-container: #aeb9d0;
+  --color-tertiary: #6bd8cb;
+  --color-on-tertiary: #003732;
+  --color-tertiary-container: #005e56;
+  --color-on-tertiary-container: #6cd9cb;
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+  --color-primary-fixed: #a7f3d0;
+  --color-primary-fixed-dim: #0b5e43;
+  --color-on-primary-fixed: #002116;
+  --color-on-primary-fixed-variant: #00513b;
+  --color-secondary-fixed: #d8e3fb;
+  --color-secondary-fixed-dim: #bcc7de;
+  --color-on-secondary-fixed: #111c2d;
+  --color-on-secondary-fixed-variant: #3c475a;
+  --color-tertiary-fixed: #89f5e7;
+  --color-tertiary-fixed-dim: #6bd8cb;
+  --color-on-tertiary-fixed: #00201d;
+  --color-on-tertiary-fixed-variant: #005049;
+  --color-background: #030605;
+  --color-on-background: #e0e2ee;
+  --color-surface-variant: #0f271e;
+
+  /* Custom fonts */
+  --font-body-lg: 'Geist', sans-serif;
+  --font-body-md: 'Geist', sans-serif;
+  --font-display-lg: 'Geist', sans-serif;
+  --font-headline-lg: 'Geist', sans-serif;
+  --font-label-md: 'JetBrains Mono', monospace;
+  --font-headline-lg-mobile: 'Geist', sans-serif;
+  --font-label-sm: 'JetBrains Mono', monospace;
+
+  /* Custom spacings */
+  --spacing-margin-desktop: 48px;
+  --spacing-margin-mobile: 16px;
+  --spacing-gutter: 24px;
+  --spacing-container-max: 1280px;
+}
+
+/* ---- Global Reset & Defaults ---- */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-verdex-dark);
+  color: var(--color-verdex-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Scrollbar Styling ---- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-verdex-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-verdex-dark-surface);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-verdex-text-muted);
+}
+
+/* ---- Utility Animations ---- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.6);
+  }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out forwards;
+}
+
+/* ---- Glass Card Base ---- */
+.glass-card {
+  background: rgba(10, 15, 12, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(11, 94, 67, 0.3);
+  box-shadow: 0 8px 32px rgba(11, 94, 67, 0.1);
+}
+
+/* ---- Buttons ---- */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-verdex-primary), var(--color-verdex-accent));
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(11, 94, 67, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: rgba(32, 32, 36, 0.6);
+  color: var(--color-verdex-text);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(32, 32, 36, 0.9);
+  border-color: var(--color-verdex-primary);
+}
+
+/* ---- Input Fields ---- */
+.input-field {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(12, 12, 14, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 12px;
+  color: var(--color-verdex-text);
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: var(--color-verdex-text-muted);
+}
+
+.input-field:focus {
+  border-color: var(--color-verdex-primary);
+  box-shadow: 0 0 0 3px rgba(11, 94, 67, 0.15);
+}
+
+/* ---- Leaflet Map Override ---- */
+.leaflet-container {
+  border-radius: 16px;
+  z-index: 1;
+}
