@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import '@/styles/enviromap.css';
 import EarthIcon from '@/components/EarthIcon';
 
+
 // Make L available globally so leaflet.heat can patch it
 if (typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).L = L;

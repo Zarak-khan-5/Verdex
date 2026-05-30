@@ -50,6 +50,9 @@ verdex/
 │   │   │   ├── EnviroMapView.tsx    # Leaflet-based Live Weather & AQI Heatmap overlay
 │   │   │   ├── ImpactMetrics.tsx    # Cumulative carbon savings and transit split
 │   │   │   ├── MobilityMap.tsx      # Leaflet interactive route mapper
+│   │   │   ├── Leaderboard.tsx      # Standings leaderboard with custom badges & search
+│   │   │   ├── CongestionReport.tsx # Weekly Peak-Hour Congestion analytics report
+│   │   │   ├── PendingApprovals.tsx # Planner signup approvals manager panel
 │   │   │   ├── RouteForm.tsx        # Coordinates & travel preference inputs
 │   │   │   ├── SessionMonitor.tsx   # Admin dashboard active session tracker
 │   │   │   └── SystemLogs.tsx       # Simulated live system log console
@@ -67,6 +70,8 @@ verdex/
 │   │   │   └── page.tsx             # Landing / Login Page
 │   │   ├── services/                # API calls to Python backend (typed)
 │   │   │   └── api.ts
+│   │   ├── utils/                   # Helper utility functions
+│   │   │   └── rank.ts              # Carbon points ranking calculator
 │   │   ├── styles/                  # CSS Modules & Global Styles
 │   │   │   ├── globals.css
 │   │   │   ├── dashboard.css
@@ -287,6 +292,10 @@ Shared TypeScript contracts are declared under [types/index.ts](file:///d:/Verde
   * **Response Body (`AuthResponse`):** Contains JWT, user ID, role, and name metadata.
 * **`GET /api/auth/me`**
   * **Description:** Decodes incoming JWT bearer tokens in the authorization header and returns logged-in user profile details.
+* **`GET /api/auth/admin/users`**
+  * **Description:** Lists all registered user accounts (Name, Email, Role, ID) in the database. Restricted to administrator accounts.
+* **`DELETE /api/auth/admin/users/{user_id}`**
+  * **Description:** Deletes the user account by UUID from the database. Restricted to administrator accounts.
 
 #### 2. Routes & Optimization Router (`/api`)
 * **`POST /api/routes/optimize`**
@@ -316,22 +325,88 @@ Shared TypeScript contracts are declared under [types/index.ts](file:///d:/Verde
 * **`GET /api/routes/history/{user_id}`**
   * **Description:** Retrieves all historical routes requested and completed by the specified user UUID.
 * **`GET /api/client/metrics`**
-  * **Description:** Returns aggregate data logs, monthly trends, and carbon reduction distributions across transit modes.
+  * **Description:** Returns aggregate data logs, monthly trends, and carbon reduction distributions across transit modes. Supports filtering by city via the optional `city` query parameter (Lahore, Karachi, Islamabad, All).
 * **`GET /api/admin/sessions`**
   * **Description:** Monitors live active user sessions count against the 10 concurrent user limit.
 * **`GET /api/admin/logs`**
   * **Description:** Streams system engine events, API requests, warnings, and database access logs.
 * **`GET /api/envi/data`**
   * **Description:** Proxies weather data, PM2.5/PM10 air quality metrics from Open-Meteo, and calculates traffic congestion multipliers based on coordinate inputs (`lat` & `lon` query params).
+* **`POST /api/routes/safety-wizard`**
+  * **Description:** Performs a dual-route hazard and safety analysis (Eco Route vs Alternative Route) using the AI Safety Wizard. Accepts an optional `timestamp` parameter.
+* **`GET /api/routes/report/{user_id}`**
+  * **Description:** Generates aggregate statistics (CO₂ saved, credits, tree equivalents, cars removed, mode counts) and lists all raw routes for PDF report downloads.
+  * **Request Body (`SafetyWizardRequest`):**
+    ```json
+    {
+      "city": "Lahore",
+      "source": "Gulberg",
+      "destination": "DHA",
+      "timestamp": "2026-05-30T01:49:24.000Z"
+    }
+    ```
+  * **Response Body (`SafetyWizardResponse`):** Returns independent safety ratings, verdicts, detailed traffic, weather, incidents, and air quality advisories for both the `eco` and `alternative` routes.
+* **`GET /api/routes/leaderboard`**
+  * **Description:** Computes and returns the carbon credits leaderboard for all users in descending order of credits, factoring in system administrators.
+  * **Response Body (`LeaderboardEntry[]`):**
+    ```json
+    [
+      {
+        "user_id": "72687e16-0e9b-47ee-9f3d-adfcafb4f650",
+        "name": "Leaderboard Test User",
+        "email": "leadertest@verdex.io",
+        "role": "user",
+        "total_co2_saved_kg": 10.0,
+        "carbon_credits_earned": 20.0
+      }
+    ]
+    ```
+* **`GET /api/auth/admin/approvals`**
+  * **Description:** Lists all pending City Planner (client) signup approval requests. (Admin only).
+* **`POST /api/auth/admin/approvals/{request_id}/approve`**
+  * **Description:** Approves a pending planner registration, creating the user and deleting the pending request. (Admin only).
+* **`POST /api/auth/admin/approvals/{request_id}/reject`**
+  * **Description:** Rejects and deletes a pending planner registration request. (Admin only).
+* **`GET /api/client/congestion-report`**
+  * **Description:** Returns weekly peak-hour eco route congestion report data. Grouped by day_of_week and hour_of_day.
+  * **Query Parameters:** `city` (default "All"), `week_start` (defaults to current Monday), `corridor` (default "All").
+  * **Response Body (`CongestionReportResponse`):**
+    ```json
+    {
+      "status": "success",
+      "summary": {
+        "total_flags": 45,
+        "peak_day": "Tuesday",
+        "worst_hour": "09:00",
+        "am_count": 25,
+        "pm_count": 20,
+        "am_ratio": 56,
+        "pm_ratio": 44
+      },
+      "bar_chart": {
+        "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "am_data": [4, 5, 3, 6, 4, 2, 1],
+        "pm_data": [3, 4, 5, 2, 3, 2, 1]
+      },
+      "line_chart": {
+        "labels": ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"],
+        "data": [5, 12, 4, 2, 1, 2, 1, 3, 2, 6, 10, 8, 3]
+      },
+      "corridors": ["Gulberg - Mall Road", "Johar Town - DHA"]
+    }
+    ```
 
 ---
 
 ## 8. Dashboard UI Component Breakdown
 
 ### User Commuter Dashboard (`/dashboard/user`)
+* **`<TripReportButton />`:** A premium, tactile download button that fetches user transit history and generates a comprehensive PDF impact report containing aggregate metrics, horizontal bar charts for transit split, and detailed commute logs.
+* **`<Leaderboard />`:** A premium, glassmorphic standings card visualizing user standings by Green Credits and carbon savings. Features a built-in search filter, manual refresh button, initials avatar generator, and gold/silver/bronze badges.
 * **`Verdex AI Navigation Widget` ([verdex.html](file:///d:/Verdex/frontend/public/verdex.html) embedded as an iframe):** A fully self-contained, interactive two-panel widget replacing the static map and route optimizer. Features include:
   - **Dark Leaflet Map:** Renders dark CartoDB tiles centered on Lahore (31.5497° N, 74.3436° E) at zoom level 12.
   - **Nominatim Auto-Suggest:** Autocomplete search input fields for both origin and destination with a 300ms debounce.
+  - **Local Landmarks Cache**: Resolves common sectors (e.g. DHA, Gulberg, Clifton, Blue Area) instantly using an integrated coordinate mapping database to prevent Nominatim rate limiting.
   - **GPS Current Location:** Detects user location via the browser Geolocation API and auto-fills coordinates.
   - **Click-to-Drop-Pin & Drag:** Drops draggable origin (green) and destination (red) pins on the map, trigger-updating inputs using reverse-geocoding.
   - **Scored Route Alternatives:** Fetches driving routes from the OSRM engine and scores them composite-style across category metrics (**Eco Green**, **Fastest**, **Safest**).
@@ -340,10 +415,17 @@ Shared TypeScript contracts are declared under [types/index.ts](file:///d:/Verde
 
 
 ### Client/City Planner Dashboard (`/dashboard/client`)
-* **`<CityHeatmap />`:** Visualizes transit mode distribution and cumulative city savings trends over months using Chart.js.
-* **`<ImpactMetrics />`:** Overview indicators for municipal authorities, rendering total city-wide savings, active commuter indices, and progress toward SDG 11 and 13 targets.
+* **`<CityHeatmap />`:** Visualizes transit mode distribution and cumulative city savings trends over months using Chart.js. Renders an uppercase monospace city subtitle aligned with the selected city.
+* **`<ImpactMetrics />`:** Overview indicators for municipal authorities, rendering total city-wide savings, active commuter indices, and progress toward SDG 11 and 13 targets. Renders an uppercase monospace city subtitle.
+* **`City Selector Pill Group`**: A segmented button selection bar allowing planners to toggle between "All Cities", "Lahore", "Karachi", and "Islamabad" to fetch dynamically filtered metrics from the backend uvicorn API.
+* **`Route Heatmap Map`**: An integrated Leaflet map displaying commuter routes, which dynamically pans and centers onto coordinates corresponding to the active city selection.
+* **`<CongestionReport />`**: Premium sub-dashboard component for weekly Eco route congestion analytics. Displays summary metric cards (flags, peak day, worst hour, AM/PM split), grouped bar charts showing daily rush hour comparisons, hourly line charts mapping intensity, and CSV data export functionality.
+
 
 ### System Admin Dashboard (`/dashboard/admin`)
+* **`User Management Panel`:** A data grid interface enabling administrators to list all system accounts (Administrators, Planners, and End Users) with custom colored role badges, and perform account deletions. Deleting a user account cascades to remove their associated routes, sessions, and carbon records, instantly updating the leaderboard standings.
+* **`<PendingApprovals />`**: Renders a pending list of registrations in a table format with quick action Approve (emerald) and Reject (coral) buttons, triggering immediate state syncs and notifications.
+* **`Planner Approvals Sidebar Link`**: Displays a red notification badge in the admin navigation panel, indicating the count of planner signups awaiting action.
 * **`<SessionMonitor />`:** Provides a live session list showing session IDs, login timestamps, and active status, alongside an active session limit progress gauge.
 * **`<SystemLogs />`:** A terminal-like live console printing formatted, colored backend request entries, AI agent tasks, and warning alerts.
 
@@ -444,4 +526,74 @@ The application incorporates state-of-the-art interactive and visual updates des
     4. **ReliefWeb**: Ongoing flood, disaster, or emergency reports across Pakistan.
   - **Error Resilience**: Catches failures individually for each data feed, passing a clear `"unavailable"` status parameter to Groq to support partial analysis generation instead of overall failure.
   - **Structured JSON Analysis**: Groq parses the combined feed data and returns a structured JSON payload detailing safety score (1-10), weather summary, traffic warnings, construction blockages, air quality advisories, and final route recommendations (`PROCEED` -> Emerald, `ALT ROUTE` -> Amber, `AVOID` -> Red) displayed natively inside the sidebar panel.
+
+### 🗓️ Live Date/Time Temporal Eco Hazards
+* **Dynamic Timezone Alignment**: The client passes the browser local ISO UTC timestamp (`timestamp`) to the `/api/routes/safety-wizard` API endpoint, which normalizes it to Pakistan Standard Time (PKT, UTC+5).
+* **AI Temporal Safety Prompts**: The backend injects the localized time, weekday, and month context into the Groq/Claude system prompts. This directs the AI Safety Wizard to evaluate temporal hazards (like night visibility drops, weekday office/school rush hours, extreme summer heat, and winter smog).
+* **Time-Aware Fallback Engine**: Overhauled the mock fallback hazard engine to dynamically scale values:
+  - **Temperature**: Based on seasonal limits per city and diurnal curves (cooling at night, heating in afternoon).
+  - **Air Quality (AQI)**: Elevated during winter months (Nov–Jan smog in northern/punjab cities) and rush hours.
+  - **Traffic Congestion**: Severe gridlock (+25 to +45 min delays) on the Eco route during weekday rush hours (8-10 AM, 5-8 PM) with moderate detours on the Alternative route.
+  - **Safety Score**: Automatically calculated using a composite safety evaluation.
+
+### 🌳 Dual-Route Split (Eco vs Alternative)
+* **Route Separation**: Divides route optimizations and safety analysis into:
+  - **Eco Route**: The shortest/direct path focused on maximizing carbon reduction.
+  - **Alternative Route**: A longer detour path focused on avoiding high-density traffic congestion and primary hazard blocks.
+* **Independent Safety Analyses**: Evaluates road blocks, air quality index, weather temperature, and traffic severity independently for both route profiles in a single request.
+
+### 🗺️ Local Landmarks & Drag-Drop Geocoding
+* **Draggable Pins & Reverse Geocoding**: Users can drop starting and ending pins directly on the Leaflet map and drag them dynamically. Dropping a pin automatically runs reverse geocoding to update the text search inputs.
+* **Landmarks Caching Database**: Built an integrated offline database (`LOCAL_LANDMARKS`) mapping key sectors of major Pakistani cities (Lahore, Karachi, Islamabad) directly to coordinate points. This bypasses search latency and external Nominatim API request failures during live demos.
+
+### 📄 Client-Side PDF Impact Reports
+* **Dynamic PDF Construction**: Users can download a single-file PDF report of their eco-commutes. By dynamically loading `jspdf` and `jspdf-autotable` in the download click handler, Next.js server-side rendering (SSR) builds without failure.
+* **Aesthetic Theme Consistency**: The PDF is styled with the app's black-and-bottle-green palette, rendering a full-width header bar, a 2x2 grid of KPI cards, and custom horizontal bar charts drawn using vector `rect` fills for the mode breakdown.
+* **Alternating Green Logs & Footers**: History lists are rendered using AutoTable styling with alternating row tints (`#f0f8f5`), while each page overlays a custom footer showing page numbers and SDG 11 & SDG 13 attribution.
+
+### 👥 Admin User Directory & Account Deletions
+* **Registered Accounts Directory**: Administrators can access the system users directory in the Admin Dashboard, which queries and renders accounts, roles, and emails.
+* **Tactile Deletion Actions**: Admins can remove user accounts from the database. Clicking "Delete" shows a confirmation modal, and on execution, calls the backend delete route which performs Supabase and mock fallback sync removals. Button styles are styled in a high-contrast dark red theme.
+
+### 🏆 Green Commute Leaderboard & Cascade Deletion
+* **Green Credits Rankings Table**: Displays ranked user standings based on overall carbon points (credits) dynamically computed on-the-fly (`total_co2_saved_kg / 0.5`). High-tier winners are displayed with vibrant Gold, Silver, and Bronze badges.
+* **Cascade Deletion Integration**: If an administrator deletes a user, the system automatically removes that user's associated route history and carbon records. This cascades immediately to set their points to zero, clearing them from all leaderboard calculations dynamically.
+
+### 🏙️ City Planner Selector & Map Centering
+* **Pill-Based City Filters**: Adds a segmented city selection button bar styled with custom borders and bottle green active backgrounds. Toggling updates states, triggers query refetching, and displays subtle 10px monospace uppercase city labels above each graph.
+* **Active Geographic Map Pan**: Dynamically re-centers the client dashboard Leaflet route map viewport on specific target city coordinates (Lahore, Karachi, Islamabad) on selection using custom ChangeView react-leaflet controls.
+* **Coordinate-Based Bounding Boxes**: Evaluates route source coordinates against city bounding boxes in the backend to filter aggregations (trips, saved CO₂, active users, monthly trends) dynamically.
+
+### 🚦 Peak-Hour Eco Route Congestion Report
+* **Automatic Hazard Event Tracking**: Safety Wizard scans automatically log severe environmental and traffic flags to a persistent `HazardEvents` PostgreSQL table (or local mock fallback store) detailing route profile, city, weekday, hour of day, and corridor context.
+* **Weekly Navigation & Stepping**: Features navigation controls allowing planner clients to select and step through historical weeks.
+* **AM/PM Grouped Bar Analytics**: Groups flags by weekday, comparing morning rush (08:00–10:00) vs evening rush (17:00–20:00) with interactive toggles to isolate datasets.
+* **Hourly Intensity Visualization**: Visualizes flag occurrences hourly from 08:00 to 20:00 with point-specific styling highlighting the peak hour in dark red.
+* **Municipal Data Exports**: Enables download of compiled analytics datasets directly into a standard formatted CSV spreadsheet with a single click.
+
+### 🛂 City Planner Signup Approval Workflow
+* **Planner Interception**: Users choosing the "City Planner" role during registration are put on hold instead of being logged in immediately.
+* **Pending Approvals Queue**: Signups are saved to `PendingPlanners` DB table with a pending state status returned to the client browser.
+* **Real-time Admin Notifications**: System admins receive red notification pill badges on their sidebar detailing planner approvals.
+* **One-click Operations**: Admins approve or reject registrations securely. Approved planners' accounts are activated automatically and can immediately sign in.
+
+### 🏆 Carbon Points Gamification Ladder
+* **21-Level Rank Scale**: Users start as `Carbon Cadet` (Level 0) and level up every 50 carbon credits (up to 1000 credits), culminating in the final `Planet Savior` (Level 20) rank.
+* **5 Visual Tier Grades**: Rank styles and icons shift dynamically based on credit scores:
+  - **Bronze (Levels 0-4)**: Amber gradients, bike icon, representing initial commuters.
+  - **Silver (Levels 5-9)**: Slate metallic, forest icon, representing active eco-walkers.
+  - **Gold (Levels 10-14)**: Yellow gold, workspace premium badge.
+  - **Platinum (Levels 15-19)**: Emerald green, military check medal.
+  - **Cosmic (Level 20+)**: Radiant purple/cyan gradient, earth globe icon, representing climate leaders.
+* **Dynamic Level-Up Wallet Progress**: Replaces the static 500-point limit with a dynamic progression bar tracking credits needed to reach the *next* immediate rank (e.g. `25 / 50 pts` towards Level 2).
+* **Sidebar Profile Status**: Surfaces the commuter's active rank title and visual icon dynamically in the sidebar below their role.
+* **Leaderboard Standing Badges**: Renders small visual rank capsules adjacent to name entries in the global green standings page.
+
+### ⚙️ Interactive Admin Settings & Live App Sync
+* **Instant Theme Reactivity**: Select dropdown instantly swaps root styles between Dark Mode and Light Mode on selection, saving the value immediately.
+* **Dynamic Language Translation**: Implemented a comprehensive translation dictionary system. Toggling the preferred language updates state, instantly translating sidebar links, control panels, welcome cards, and status metrics to English, Spanish, German, Urdu, or Chinese.
+* **Session Monitor Storage Synchronization**: Connects the Demo Session limit value to the session monitor gauge. Triggering a change dispatches a window `'storage'` event, forcing the active session limit indicator `/ max` to recalculate immediately without requiring refreshes.
+* **Live Agent Engine Indicators**: Disabling or enabling ReAct Agent Mode dynamically swaps status card values between "Active" and "Disabled" in the admin control center.
+
+
 

@@ -14,14 +14,18 @@ export default function SessionMonitor() {
 
   useEffect(() => {
     const fetchSessions = async () => {
+      const storedLimit = typeof window !== 'undefined' ? localStorage.getItem('verdex_demo_limit') : null;
+      const currentLimit = storedLimit ? Number(storedLimit) : 10;
+      
       try {
         const data = await getSessions();
+        data.max_sessions = currentLimit;
         setSessionData(data);
       } catch {
         // Fallback mock data
         setSessionData({
           active_sessions: 4,
-          max_sessions: 10,
+          max_sessions: currentLimit,
           sessions: [
             {
               session_id: 'a1b2c3d4',
@@ -53,11 +57,19 @@ export default function SessionMonitor() {
         setLoading(false);
       }
     };
+    
     fetchSessions();
 
     // Poll every 10 seconds
     const interval = setInterval(fetchSessions, 10000);
-    return () => clearInterval(interval);
+    
+    // Listen to local settings saves
+    window.addEventListener('storage', fetchSessions);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', fetchSessions);
+    };
   }, []);
 
   const fillPercentage =

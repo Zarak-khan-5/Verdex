@@ -4,9 +4,16 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import CityHeatmap from '@/components/CityHeatmap';
 import ImpactMetrics from '@/components/ImpactMetrics';
+import CongestionReport from '@/components/CongestionReport';
 import { getCityMetrics } from '@/services/api';
+import dynamic from 'next/dynamic';
+
 import type { CityMetrics, AuthResponse } from '@/types';
 import '@/styles/dashboard.css';
+
+const MobilityMap = dynamic(() => import('@/components/MobilityMap'), {
+  ssr: false,
+});
 
 const DEFAULT_METRICS: CityMetrics = {
   total_co2_saved_kg: 1247.5,
@@ -31,26 +38,55 @@ export default function ClientDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<AuthResponse | null>(null);
   const [metrics, setMetrics] = useState<CityMetrics>(DEFAULT_METRICS);
-  const [activeView, setActiveView] = useState<'overview' | 'heatmap' | 'reports'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'heatmap' | 'reports' | 'congestion'>('overview');
+  const [selectedCity, setSelectedCity] = useState<string>('All');
+
+  const getCityCoordinates = (city: string): [number, number] => {
+    switch (city.toLowerCase()) {
+      case 'lahore':
+        return [31.5497, 74.3436];
+      case 'karachi':
+        return [24.8607, 67.0011];
+      case 'islamabad':
+        return [33.6844, 73.0479];
+      default:
+        return [31.5497, 74.3436];
+    }
+  };
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem('verdex_theme');
+    const root = window.document.documentElement;
+    const body = window.document.body;
+    if (savedTheme === 'light') {
+      root.classList.remove('dark');
+      root.classList.add('light');
+      body.classList.add('light');
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+      body.classList.remove('light');
+    }
+
     const stored = localStorage.getItem('verdex_user');
     if (!stored) {
       router.push('/');
       return;
     }
     setUser(JSON.parse(stored));
+  }, [router]);
 
+  useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const data = await getCityMetrics();
+        const data = await getCityMetrics(selectedCity);
         setMetrics(data);
       } catch {
         // Keep default metrics if API unavailable
       }
     };
     fetchMetrics();
-  }, [router]);
+  }, [selectedCity]);
 
   const handleLogout = () => {
     localStorage.removeItem('verdex_token');
@@ -91,6 +127,13 @@ export default function ClientDashboard() {
           <span className="material-symbols-outlined sidebar-link-icon">trending_up</span>
           Reports &amp; SDGs
         </button>
+        <button 
+          className={`sidebar-link ${activeView === 'congestion' ? 'sidebar-link-active' : ''}`}
+          onClick={() => setActiveView('congestion')}
+        >
+          <span className="material-symbols-outlined sidebar-link-icon">warning</span>
+          Congestion Report
+        </button>
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
@@ -118,6 +161,35 @@ export default function ClientDashboard() {
           <p className="dashboard-subtitle">
             Urban mobility analytics &amp; sustainability impact
           </p>
+        </div>
+
+        {/* City Toggle */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+          {['All', 'Lahore', 'Karachi', 'Islamabad'].map((c) => (
+            <button
+              key={c}
+              onClick={() => setSelectedCity(c)}
+              style={{
+                width: '80px',
+                height: '32px',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: selectedCity === c ? '#0b5e43' : 'transparent',
+                color: selectedCity === c ? '#e8f5ef' : '#3d6b54',
+                borderColor: selectedCity === c ? '#1aa876' : '#0b5e43',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+              }}
+            >
+              {c === 'All' ? 'All Cities' : c}
+            </button>
+          ))}
         </div>
 
         {/* Summary Stats */}
@@ -169,21 +241,27 @@ export default function ClientDashboard() {
         {/* Dynamic content rendering based on activeView */}
         {activeView === 'overview' && (
           <div className="dashboard-grid grid-2">
-            <CityHeatmap monthlyTrend={metrics.monthly_trend} />
-            <ImpactMetrics metrics={metrics} />
+            <CityHeatmap monthlyTrend={metrics.monthly_trend} city={selectedCity} />
+            <ImpactMetrics metrics={metrics} city={selectedCity} />
           </div>
         )}
 
         {activeView === 'heatmap' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
-            <CityHeatmap monthlyTrend={metrics.monthly_trend} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24, height: '500px' }}>
+            <div className="panel-card" style={{ padding: 0, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <MobilityMap center={getCityCoordinates(selectedCity)} />
+            </div>
           </div>
         )}
 
         {activeView === 'reports' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
-            <ImpactMetrics metrics={metrics} />
+            <ImpactMetrics metrics={metrics} city={selectedCity} />
           </div>
+        )}
+
+        {activeView === 'congestion' && (
+          <CongestionReport city={selectedCity} />
         )}
       </main>
     </div>

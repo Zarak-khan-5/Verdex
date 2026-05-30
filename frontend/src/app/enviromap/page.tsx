@@ -22,8 +22,24 @@ const EnviroMapView = dynamic(() => import('@/components/EnviroMapView'), {
     </div>
   ),
 });
+import { useEffect } from 'react';
 
 export default function EnviroMapPage() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('verdex_theme');
+    const root = window.document.documentElement;
+    const body = window.document.body;
+    if (savedTheme === 'light') {
+      root.classList.remove('dark');
+      root.classList.add('light');
+      body.classList.add('light');
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+      body.classList.remove('light');
+    }
+  }, []);
+
   return (
     <>
       <link

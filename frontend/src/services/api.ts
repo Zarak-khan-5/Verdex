@@ -9,6 +9,11 @@ import type {
   SessionsResponse,
   SystemLog,
   CityMetrics,
+  TripReportResponse,
+  UserInfo,
+  LeaderboardEntry,
+  CongestionReportResponse,
+  PendingPlannerRequest,
 } from '@/types';
 
 // ============================================================
@@ -18,6 +23,7 @@ import type {
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   headers: { 'Content-Type': 'application/json' },
+  timeout: 10000, // 10-second timeout to prevent hanging forever
 });
 
 // Attach JWT token to every outgoing request
@@ -69,8 +75,58 @@ export const getSystemLogs = async (): Promise<SystemLog[]> => {
 
 // ---- Client / City Planner ----
 
-export const getCityMetrics = async (): Promise<CityMetrics> => {
-  const res = await api.get<CityMetrics>('/api/client/metrics');
+export const getCityMetrics = async (city?: string): Promise<CityMetrics> => {
+  const res = await api.get<CityMetrics>('/api/client/metrics', {
+    params: city ? { city } : {},
+  });
+  return res.data;
+};
+
+export const getTripReport = async (userId: string): Promise<TripReportResponse> => {
+  const res = await api.get<TripReportResponse>(`/api/routes/report/${userId}`);
+  return res.data;
+};
+
+export const adminGetUsers = async (): Promise<UserInfo[]> => {
+  const res = await api.get<UserInfo[]>('/api/auth/admin/users');
+  return res.data;
+};
+
+export const adminDeleteUser = async (userId: string): Promise<{ status: string; message: string }> => {
+  const res = await api.delete<{ status: string; message: string }>(`/api/auth/admin/users/${userId}`);
+  return res.data;
+};
+
+export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
+  const res = await api.get<LeaderboardEntry[]>('/api/routes/leaderboard');
+  return res.data;
+};
+
+export const getPendingPlanners = async (): Promise<PendingPlannerRequest[]> => {
+  const res = await api.get<PendingPlannerRequest[]>('/api/auth/admin/approvals');
+  return res.data;
+};
+
+export const approvePlanner = async (requestId: string): Promise<{ status: string; message: string }> => {
+  const res = await api.post<{ status: string; message: string }>(`/api/auth/admin/approvals/${requestId}/approve`);
+  return res.data;
+};
+
+export const rejectPlanner = async (requestId: string): Promise<{ status: string; message: string }> => {
+  const res = await api.post<{ status: string; message: string }>(`/api/auth/admin/approvals/${requestId}/reject`);
+  return res.data;
+};
+
+export const getCongestionReport = async (
+  city?: string,
+  weekStart?: string,
+  corridor?: string
+): Promise<CongestionReportResponse> => {
+  const params: Record<string, string> = {};
+  if (city) params.city = city;
+  if (weekStart) params.week_start = weekStart;
+  if (corridor) params.corridor = corridor;
+  const res = await api.get<CongestionReportResponse>('/api/client/congestion-report', { params });
   return res.data;
 };
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { BestRoute } from '@/types';
@@ -32,9 +33,17 @@ const greenIcon = L.icon({
   shadowSize: [41, 41],
 });
 
+function ChangeView({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center);
+  }, [center, map]);
+  return null;
+}
+
 export default function MobilityMap({ route, center = [31.5204, 74.3587] }: MobilityMapProps) {
   const pathCoords = route?.path_coordinates?.map(
-    (c) => [c[0], c[1]] as [number, number]
+    (c: number[]) => [c[0], c[1]] as [number, number]
   ) || [];
 
   const startPoint = pathCoords.length > 0 ? pathCoords[0] : null;
@@ -48,6 +57,7 @@ export default function MobilityMap({ route, center = [31.5204, 74.3587] }: Mobi
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
       >
+        <ChangeView center={center} />
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"

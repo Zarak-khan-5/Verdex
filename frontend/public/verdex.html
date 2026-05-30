@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verdex AI Navigation Widget</title>
+  <title>Verdex AI Safety Agent</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,19 +12,19 @@
       theme: {
         extend: {
           colors: {
-            verdex: {
-              black: '#030605',
-              dark: '#050c09',
-              green: '#081611',
-              primary: '#0b5e43',
-              accent: '#34d399',
-              light: '#10b981',
-              border: '#0f2c22'
+            terminal: {
+              bg: '#0d1117',
+              accent: '#00ff9d',
+              border: '#21262d',
+              accentDim: 'rgba(0, 255, 157, 0.08)',
+              warning: '#ff8800',
+              danger: '#ff4a4a',
+              sky: '#0ea5e9',
+              darkCard: 'rgba(21, 26, 35, 0.65)'
             }
           },
           fontFamily: {
-            sans: ['Outfit', 'sans-serif'],
-            mono: ['Space Mono', 'monospace']
+            mono: ['Space Mono', 'Courier New', 'monospace']
           }
         }
       }
@@ -34,1017 +34,1451 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-  <!-- Leaflet CSS & JS -->
+  <!-- Leaflet Map CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    /* Premium style overrides for Leaflet */
-    .leaflet-container {
-      background: #030605 !important;
-    }
-    .leaflet-bar {
-      border: 1px solid rgba(11, 94, 67, 0.3) !important;
-      background: #081611 !important;
-    }
-    .leaflet-bar a {
-      background-color: #081611 !important;
-      color: #34d399 !important;
-      border-bottom: 1px solid rgba(11, 94, 67, 0.2) !important;
-      transition: all 0.2s ease;
-    }
-    .leaflet-bar a:hover {
-      background-color: #0b5e43 !important;
-      color: #ffffff !important;
-    }
-    .leaflet-control-attribution {
-      background: rgba(3, 6, 5, 0.85) !important;
-      color: #94a3b8 !important;
+    body {
+      background-color: #080b10;
+      color: #c9d1d9;
       font-family: 'Space Mono', monospace;
-      font-size: 8px !important;
-      border-radius: 4px;
-      border: 1px solid rgba(11, 94, 67, 0.15);
-    }
-    .leaflet-tooltip {
-      background-color: #081611 !important;
-      border: 1px solid #0b5e43 !important;
-      color: #ffffff !important;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 500;
-      border-radius: 6px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    }
-    .leaflet-tooltip-left:before {
-      border-left-color: #0b5e43 !important;
-    }
-    .leaflet-tooltip-right:before {
-      border-right-color: #0b5e43 !important;
     }
 
-    /* Custom scrollbar */
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 5px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: #030605;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #0b5e43;
-      border-radius: 99px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #34d399;
+    /* Glow Styles */
+    .glow-text-green {
+      text-shadow: 0 0 8px rgba(0, 255, 157, 0.4);
     }
     
-    /* Input autocomplete custom styles */
-    .autocomplete-list {
-      max-height: 200px;
-      overflow-y: auto;
+    .glow-border:focus {
+      border-color: #00ff9d !important;
+      box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+      outline: none;
+    }
+
+    /* Pulse animation for API dot */
+    .pulse-green-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #00ff9d;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ff9d;
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 6px #00ff9d;
+      }
+      50% {
+        transform: scale(1.25);
+        opacity: 0.7;
+        box-shadow: 0 0 12px #00ff9d;
+      }
+    }
+
+    /* CRT scanlines effect overlay */
+    .terminal-crt::after {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
+      z-index: 100;
+      background-size: 100% 4px;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    /* Selection items custom styling */
+    select option {
+      background-color: #0d1117;
+      color: #c9d1d9;
+    }
+
+    /* Leaflet popup customization */
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background: rgba(13, 17, 23, 0.95) !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(0, 255, 157, 0.25) !important;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      backdrop-filter: blur(10px);
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 6px !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+    }
+
+    /* Animated neon route line styling */
+    @keyframes routeDash {
+      to {
+        stroke-dashoffset: -20;
+      }
+    }
+    .neon-route-line {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 5px var(--route-color, #00ff9d));
+      animation: routeDash 1.2s linear infinite;
+    }
+
+    /* Fade-in for console log rows */
+    .log-row {
+      opacity: 0;
+      animation: logFadeIn 0.25s forwards;
+    }
+    @keyframes logFadeIn {
+      to { opacity: 1; }
+    }
+
+    /* Custom scrollbars */
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.1);
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+    }
+
+    /* ===== Hazard Tile Hover & Expand ===== */
+    .hazard-tile {
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .hazard-tile::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+    .hazard-tile:hover {
+      transform: translateY(-2px) scale(1.012);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    }
+    .hazard-tile:hover::before {
+      opacity: 1;
+    }
+    /* Per-category hover glows */
+    .hazard-tile[data-category="weather"]:hover {
+      border-color: rgba(14, 165, 233, 0.6);
+      box-shadow: 0 6px 24px rgba(14, 165, 233, 0.12), 0 0 0 1px rgba(14, 165, 233, 0.15);
+    }
+    .hazard-tile[data-category="weather"]:hover::before {
+      background: linear-gradient(135deg, rgba(14,165,233,0.06) 0%, transparent 60%);
+    }
+    .hazard-tile[data-category="traffic"]:hover {
+      border-color: rgba(255, 136, 0, 0.6);
+      box-shadow: 0 6px 24px rgba(255, 136, 0, 0.12), 0 0 0 1px rgba(255, 136, 0, 0.15);
+    }
+    .hazard-tile[data-category="traffic"]:hover::before {
+      background: linear-gradient(135deg, rgba(255,136,0,0.06) 0%, transparent 60%);
+    }
+    .hazard-tile[data-category="incidents"]:hover {
+      border-color: rgba(234, 88, 12, 0.6);
+      box-shadow: 0 6px 24px rgba(234, 88, 12, 0.12), 0 0 0 1px rgba(234, 88, 12, 0.15);
+    }
+    .hazard-tile[data-category="incidents"]:hover::before {
+      background: linear-gradient(135deg, rgba(234,88,12,0.06) 0%, transparent 60%);
+    }
+    .hazard-tile[data-category="air"]:hover {
+      border-color: rgba(16, 185, 129, 0.6);
+      box-shadow: 0 6px 24px rgba(16, 185, 129, 0.12), 0 0 0 1px rgba(16, 185, 129, 0.15);
+    }
+    .hazard-tile[data-category="air"]:hover::before {
+      background: linear-gradient(135deg, rgba(16,185,129,0.06) 0%, transparent 60%);
+    }
+
+    /* Expand/collapse detail panel */
+    .hazard-detail {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease, margin-top 0.3s ease;
+      margin-top: 0;
+    }
+    .hazard-tile.expanded .hazard-detail {
+      max-height: 320px;
+      opacity: 1;
+      margin-top: 10px;
+    }
+    .hazard-tile.expanded {
+      transform: translateY(0) scale(1);
+    }
+    .hazard-tile .expand-icon {
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .hazard-tile.expanded .expand-icon {
+      transform: rotate(180deg);
+    }
+    /* Active tile border accent pulse */
+    .hazard-tile.expanded[data-category="weather"] {
+      border-color: rgba(14, 165, 233, 0.5);
+      box-shadow: 0 4px 20px rgba(14, 165, 233, 0.1);
+    }
+    .hazard-tile.expanded[data-category="traffic"] {
+      border-color: rgba(255, 136, 0, 0.5);
+      box-shadow: 0 4px 20px rgba(255, 136, 0, 0.1);
+    }
+    .hazard-tile.expanded[data-category="incidents"] {
+      border-color: rgba(234, 88, 12, 0.5);
+      box-shadow: 0 4px 20px rgba(234, 88, 12, 0.1);
+    }
+    .hazard-tile.expanded[data-category="air"] {
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
+    }
+    /* Severity chip */
+    .severity-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
   </style>
 </head>
-<body class="bg-verdex-black text-slate-200 font-sans h-screen w-screen flex flex-row overflow-hidden select-none">
+<body class="h-screen w-screen p-0 m-0 overflow-hidden flex flex-col relative terminal-crt bg-[#080b10]">
 
-  <!-- Left Sidebar Panel -->
-  <aside class="w-[380px] h-full flex-shrink-0 bg-verdex-green border-r border-verdex-border flex flex-col z-[1000]">
+  <!-- Split Screen Layout Container -->
+  <div class="w-full h-full flex flex-col md:flex-row relative z-10 overflow-hidden">
     
-    <!-- Widget Title Bar -->
-    <div class="px-5 py-4 border-b border-verdex-border flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-verdex-accent animate-pulse font-semibold">explore</span>
-        <div>
-          <h1 class="font-extrabold text-white tracking-widest text-lg font-sans">VERDEX <span class="text-verdex-accent text-xs font-mono font-normal">AI NAV</span></h1>
-          <p class="text-[9px] text-verdex-accent/60 uppercase font-mono tracking-wider">Multi-Route Optimization Engine</p>
+    <!-- LEFT SIDEBAR: Control Wizard Dashboard -->
+    <div class="w-full md:w-[420px] bg-[#0c0f16]/90 border-b md:border-b-0 md:border-r border-[#1f2937]/40 flex flex-col h-full overflow-y-auto relative z-20 shrink-0 backdrop-blur-xl">
+      
+      <!-- Top Header Indicator -->
+      <header class="flex items-center justify-between px-5 py-4 border-b border-[#1f2937]/40 bg-[#161b22]/30 select-none shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="pulse-green-dot"></span>
+          <span class="text-[9px] text-terminal-accent font-bold uppercase tracking-widest glow-text-green">Anthropic API Active</span>
         </div>
-      </div>
-      <div class="px-2 py-0.5 rounded bg-verdex-primary/30 border border-verdex-primary text-[9px] text-verdex-accent font-mono">
-        v2.4
-      </div>
-    </div>
-
-    <!-- Live Weather Strip -->
-    <div id="weather-strip" class="px-5 py-3 border-b border-verdex-border bg-[#050e0a]/40 text-xs flex items-center justify-between transition-all duration-300">
-      <div class="flex items-center gap-3">
-        <div id="weather-icon" class="text-2xl filter drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">☀️</div>
-        <div>
-          <div id="weather-desc" class="font-semibold text-white">Loading Weather...</div>
-          <div id="weather-coords" class="text-[9.5px] text-slate-500 font-mono">31.5497, 74.3436</div>
-        </div>
-      </div>
-      <div class="text-right font-mono">
-        <div id="weather-temp" class="text-sm font-bold text-verdex-accent">--°C</div>
-        <div id="weather-wind" class="text-[9.5px] text-slate-400">Wind: -- km/h</div>
-        <div id="weather-vis" class="text-[9.5px] text-slate-400">Vis: -- km</div>
-      </div>
-    </div>
-
-    <!-- Main Scrollable Sidebar Section -->
-    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5 custom-scrollbar">
-
-      <!-- Geocoder Autocomplete Form -->
-      <div class="space-y-4">
         
-        <!-- Origin Input Box -->
-        <div class="relative">
-          <label class="block text-[10px] text-verdex-accent font-mono uppercase tracking-wider mb-1">Origin Coordinates</label>
-          <div class="flex items-center gap-2">
-            <div class="relative flex-1">
-              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px] text-emerald-500">location_on</span>
-              <input 
-                id="origin-input" 
-                type="text" 
-                autocomplete="off" 
-                class="w-full pl-8 pr-3 py-1.5 bg-[#030605] border border-verdex-border focus:border-emerald-500 rounded text-xs text-white placeholder-slate-600 focus:outline-none transition" 
-                placeholder="Search origin location..."
-              >
+        <!-- Step Indicators -->
+        <div class="flex items-center gap-1.5 text-[10px] select-none font-mono">
+          <span id="step-ind-1" class="text-terminal-accent font-bold glow-text-green">1</span>
+          <span class="text-slate-600">→</span>
+          <span id="step-ind-2" class="text-slate-500">2</span>
+          <span class="text-slate-600">→</span>
+          <span id="step-ind-3" class="text-slate-500">3</span>
+        </div>
+      </header>
+
+      <!-- Step Wizard Body -->
+      <main class="flex-1 p-5 flex flex-col justify-between gap-6 overflow-y-auto scrollbar-thin">
+        
+        <div class="flex flex-col gap-6">
+          <!-- Logo & Branding -->
+          <div class="text-center py-2 border-b border-dashed border-[#1f2937]/50">
+            <h1 class="text-sm font-extrabold text-white tracking-widest flex items-center justify-center gap-2 uppercase">
+              <span class="material-symbols-outlined text-terminal-accent animate-pulse font-semibold">explore</span>
+              AI Route Safety Agent
+            </h1>
+            <p class="text-[8.5px] text-slate-500 uppercase tracking-widest mt-1">Pakistani Metropolitan Hazard Scanner</p>
+          </div>
+
+          <!-- STEP 1: CITY SELECTION VIEW -->
+          <section id="view-step-1" class="space-y-4">
+            <div class="space-y-2">
+              <label class="block text-[10px] text-terminal-accent uppercase tracking-widest font-bold">Select Active City</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-terminal-accent text-[18px]">location_city</span>
+                <select 
+                  id="city-select" 
+                  class="w-full pl-9 pr-4 py-2.5 bg-[#0f141c]/80 border border-[#1f2937] focus:border-terminal-accent focus:ring-1 focus:ring-terminal-accent/20 rounded text-xs text-slate-300 font-mono transition glow-border cursor-pointer appearance-none outline-none"
+                >
+                  <option value="" disabled selected>Choose a city...</option>
+                </select>
+              </div>
+              <p class="text-[9.5px] text-slate-500 leading-normal font-mono">Select a city to center the tactical map and retrieve localized hazard details.</p>
             </div>
+            
             <button 
-              id="gps-button" 
-              title="Detect current location"
-              class="p-1.5 bg-[#030605] hover:bg-verdex-primary border border-verdex-border hover:border-emerald-500 text-emerald-500 hover:text-white rounded transition duration-200 flex items-center justify-center"
+              id="btn-goto-step-2" 
+              disabled 
+              class="w-full py-2.5 bg-terminal-accent/10 border border-terminal-accent/30 text-slate-600 disabled:opacity-50 font-bold text-xs tracking-widest uppercase rounded transition-all duration-300 flex items-center justify-center gap-1.5 cursor-not-allowed"
             >
-              <span class="material-symbols-outlined text-[16px]">my_location</span>
+              Continue to Route <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
             </button>
-          </div>
-          <!-- Autocomplete Dropdown List -->
-          <div id="origin-dropdown" class="absolute left-0 right-0 mt-1 bg-[#050c09] border border-verdex-border rounded-md shadow-2xl z-50 autocomplete-list hidden max-h-[160px] overflow-y-auto custom-scrollbar"></div>
+          </section>
+
+          <!-- STEP 2: ROUTE INPUTS VIEW -->
+          <section id="view-step-2" class="hidden space-y-5">
+            <div class="flex items-center justify-between border-b border-[#1f2937]/35 pb-2">
+              <div class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-terminal-accent text-[14px]">location_on</span>
+                <span id="active-city-label" class="text-xs font-bold text-white uppercase tracking-wider">City</span>
+              </div>
+              <button id="btn-change-city" class="text-[9px] text-terminal-accent hover:underline uppercase tracking-wider font-bold">Change</button>
+            </div>
+
+            <!-- Visual Telemetry Card -->
+            <div class="bg-[#0f131a] border border-[#1f2937]/60 rounded p-4 space-y-3 font-mono">
+              <div class="flex items-center justify-between text-[8px] text-slate-500 uppercase tracking-widest border-b border-[#1f2937]/40 pb-1.5">
+                <span>Route Telemetry</span>
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-terminal-accent rounded-full animate-ping"></span> Live</span>
+              </div>
+              <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shrink-0"></span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[8px] text-slate-500 uppercase">Origin</div>
+                    <div id="card-src-lbl" class="italic text-slate-500 text-[10px] truncate">Awaiting input...</div>
+                  </div>
+                </div>
+                <!-- Dotted connector -->
+                <div class="h-4 border-l border-dashed border-slate-600 ml-[5px]"></div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-red-500 border border-white shrink-0"></span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[8px] text-slate-500 uppercase">Destination</div>
+                    <div id="card-dst-lbl" class="italic text-slate-500 text-[10px] truncate">Awaiting input...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text inputs -->
+            <div class="space-y-3">
+              <div class="space-y-1">
+                <label class="block text-[9px] text-slate-400 uppercase tracking-wider">Start Location</label>
+                <input 
+                  id="input-src" 
+                  type="text" 
+                  placeholder="e.g. Gulberg III" 
+                  class="w-full px-3 py-2 bg-[#0f141c]/80 border border-[#1f2937] focus:border-terminal-accent focus:ring-1 focus:ring-terminal-accent/20 rounded text-xs text-white font-mono placeholder-slate-600 outline-none transition glow-border"
+                />
+              </div>
+
+              <div class="space-y-1">
+                <label class="block text-[9px] text-slate-400 uppercase tracking-wider">End Destination</label>
+                <input 
+                  id="input-dst" 
+                  type="text" 
+                  placeholder="e.g. DHA Phase 5" 
+                  class="w-full px-3 py-2 bg-[#0f141c]/80 border border-[#1f2937] focus:border-terminal-accent focus:ring-1 focus:ring-terminal-accent/20 rounded text-xs text-white font-mono placeholder-slate-600 outline-none transition glow-border"
+                />
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-2.5 pt-2">
+              <button 
+                id="btn-back-to-step-1" 
+                class="flex-1 py-2.5 border border-[#1f2937] text-slate-400 font-bold text-xs uppercase tracking-widest rounded hover:bg-[#1f2937]/20 hover:text-white transition duration-200"
+              >
+                Back
+              </button>
+              <button 
+                id="btn-scan" 
+                disabled 
+                class="flex-[2] py-2.5 bg-terminal-accent/10 border border-terminal-accent/30 text-slate-600 disabled:opacity-50 font-bold text-xs tracking-widest uppercase rounded transition-all duration-300 flex items-center justify-center gap-1.5 cursor-not-allowed"
+              >
+                <span class="material-symbols-outlined text-[14px]">security</span> Scan for Hazards
+              </button>
+            </div>
+          </section>
+
+          <!-- STEP 3: SCANNING & RESULTS VIEW -->
+          <section id="view-step-3" class="hidden space-y-4">
+            
+            <!-- Animated scan loaders -->
+            <div id="loader-container" class="space-y-3 p-4 bg-[#0f131a] border border-[#1f2937]/50 rounded">
+              <div class="flex items-center justify-between text-[9px] font-bold text-terminal-accent uppercase tracking-widest">
+                <span id="load-bar-text">[░░░░░░░░░░]</span>
+                <span id="load-percentage">0%</span>
+              </div>
+              <div class="w-full h-1 bg-[#161b22] rounded overflow-hidden">
+                <div id="load-bar-fill" class="h-full bg-terminal-accent w-0 transition-all duration-200"></div>
+              </div>
+              
+              <!-- Simulated terminal readout logs -->
+              <div id="console-logs" class="w-full h-[100px] bg-[#070a0f] border border-[#1f2937]/50 rounded p-2.5 text-[8.5px] text-slate-500 space-y-1 overflow-y-auto font-mono scrollbar-thin">
+                <!-- Log statements stream here -->
+              </div>
+            </div>
+
+            <!-- Error Fault Display -->
+            <div id="error-panel" class="hidden p-4 bg-red-950/20 border border-red-500/30 rounded text-center space-y-3">
+              <span class="material-symbols-outlined text-red-500 text-3xl animate-pulse">report_problem</span>
+              <p id="error-text" class="text-[10px] text-red-400 leading-relaxed font-mono">Fault detected.</p>
+              <button 
+                id="btn-retry" 
+                class="px-5 py-1.5 bg-red-950/40 border border-red-500/50 text-red-400 text-[10px] uppercase font-bold tracking-widest rounded hover:bg-red-500/20 transition duration-200"
+              >
+                Retry Scan
+              </button>
+            </div>
+
+            <!-- Scan Verdict Outcomes (Split-Card Panel) -->
+            <div id="results-panel" class="hidden space-y-4">
+              
+              <!-- Route Category Tab Selector -->
+              <div class="grid grid-cols-2 gap-2 bg-[#0a0e14] p-1 border border-[#1f2937]/50 rounded font-mono text-[9px] select-none">
+                <button 
+                  id="tab-eco" 
+                  class="py-1.5 px-2 rounded font-bold text-center text-terminal-accent bg-terminal-accent/10 border border-terminal-accent/20 cursor-pointer shadow-[0_0_8px_rgba(0,255,157,0.1)] transition duration-200" 
+                  onclick="switchRouteTab('eco')"
+                >
+                  🌳 ECO ROUTE
+                </button>
+                <button 
+                  id="tab-alt" 
+                  class="py-1.5 px-2 rounded font-bold text-center text-slate-500 border border-transparent hover:text-slate-300 transition duration-200 cursor-pointer" 
+                  onclick="switchRouteTab('alternative')"
+                >
+                  🛣️ ALTERNATIVE
+                </button>
+              </div>
+
+              <!-- Active Route Stats Display -->
+              <div class="bg-[#0f131a]/85 border border-[#1f2937]/65 rounded p-3 space-y-2 font-mono text-[9px]">
+                <div class="flex items-center justify-between text-[8px] text-slate-500 uppercase tracking-widest border-b border-[#1f2937]/35 pb-1">
+                  <span>Route Summary</span>
+                  <span id="route-mode-display" class="flex items-center gap-1 text-terminal-accent">
+                    <span id="route-txt-mode" class="uppercase">--</span>
+                  </span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 text-center">
+                  <div class="bg-[#0c0f16]/60 p-1.5 border border-[#1f2937]/30 rounded">
+                    <div class="text-slate-500 uppercase text-[7px] tracking-wider mb-0.5">Distance</div>
+                    <div id="route-txt-distance" class="text-white text-[10px] font-extrabold">-- km</div>
+                  </div>
+                  <div class="bg-[#0c0f16]/60 p-1.5 border border-[#1f2937]/30 rounded">
+                    <div class="text-slate-500 uppercase text-[7px] tracking-wider mb-0.5">Est. Time</div>
+                    <div id="route-txt-time" class="text-white text-[10px] font-extrabold">-- min</div>
+                  </div>
+                  <div class="bg-[#0c0f16]/60 p-1.5 border border-[#1f2937]/30 rounded">
+                    <div class="text-slate-500 uppercase text-[7px] tracking-wider mb-0.5">CO₂ Saved</div>
+                    <div id="route-txt-co2" class="text-terminal-accent text-[10px] font-extrabold">-- kg</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-[#0f131a]/80 border border-[#1f2937]/80 rounded p-4 space-y-3">
+                <div class="flex items-center justify-between border-b border-[#1f2937]/45 pb-2">
+                  <span class="text-[9px] text-slate-400 uppercase tracking-widest">Route Hazard Rating</span>
+                  <span id="txt-rating" class="text-xs font-extrabold text-white font-mono">10/10</span>
+                </div>
+                <div class="flex justify-center py-1">
+                  <span id="badge-verdict" class="px-3 py-1.5 border border-terminal-accent text-terminal-accent bg-terminal-accentDim rounded text-xs font-extrabold tracking-widest uppercase font-mono shadow-[0_0_10px_rgba(0,255,157,0.15)]">PROCEED</span>
+                </div>
+              </div>
+
+              <!-- Structured Warning Cards with Hover & Click-to-Expand -->
+              <div class="space-y-2" id="hazard-tiles-container">
+                <!-- Weather tile -->
+                <div class="hazard-tile p-3 bg-terminal-darkCard border border-[#1f2937]/60 border-l-2 border-l-terminal-sky rounded text-[10px] leading-relaxed" data-category="weather" onclick="toggleHazardTile(this)">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-terminal-sky text-[16px] shrink-0">partly_cloudy_day</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <div class="font-bold text-slate-200 uppercase tracking-wide text-[8px]">Weather Advisory</div>
+                        <div class="flex items-center gap-1.5">
+                          <span id="chip-weather" class="severity-chip bg-terminal-sky/15 text-terminal-sky border border-terminal-sky/25">--</span>
+                          <span class="expand-icon material-symbols-outlined text-slate-500 text-[14px]">expand_more</span>
+                        </div>
+                      </div>
+                      <p id="txt-weather" class="text-slate-400 mt-0.5 truncate">N/A</p>
+                    </div>
+                  </div>
+                  <div class="hazard-detail">
+                    <div class="border-t border-[#1f2937]/50 pt-2.5 space-y-2">
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-terminal-sky/60 text-[12px] mt-0.5">thermostat</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Temperature</div><p id="det-weather-temp" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-terminal-sky/60 text-[12px] mt-0.5">visibility</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Visibility & Conditions</div><p id="det-weather-vis" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-terminal-sky/60 text-[12px] mt-0.5">tips_and_updates</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Advisory</div><p id="det-weather-adv" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Traffic tile -->
+                <div class="hazard-tile p-3 bg-terminal-darkCard border border-[#1f2937]/60 border-l-2 border-l-terminal-warning rounded text-[10px] leading-relaxed" data-category="traffic" onclick="toggleHazardTile(this)">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-terminal-warning text-[16px] shrink-0">warning</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <div class="font-bold text-slate-200 uppercase tracking-wide text-[8px]">Traffic & Congestion</div>
+                        <div class="flex items-center gap-1.5">
+                          <span id="chip-traffic" class="severity-chip bg-terminal-warning/15 text-terminal-warning border border-terminal-warning/25">--</span>
+                          <span class="expand-icon material-symbols-outlined text-slate-500 text-[14px]">expand_more</span>
+                        </div>
+                      </div>
+                      <p id="txt-traffic" class="text-slate-400 mt-0.5 truncate">N/A</p>
+                    </div>
+                  </div>
+                  <div class="hazard-detail">
+                    <div class="border-t border-[#1f2937]/50 pt-2.5 space-y-2">
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-terminal-warning/60 text-[12px] mt-0.5">speed</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Congestion Level</div><p id="det-traffic-level" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-terminal-warning/60 text-[12px] mt-0.5">schedule</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Estimated Delay</div><p id="det-traffic-delay" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-terminal-warning/60 text-[12px] mt-0.5">alt_route</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Recommendation</div><p id="det-traffic-rec" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Incidents tile -->
+                <div class="hazard-tile p-3 bg-terminal-darkCard border border-[#1f2937]/60 border-l-2 border-l-[#ea580c] rounded text-[10px] leading-relaxed" data-category="incidents" onclick="toggleHazardTile(this)">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-[#ea580c] text-[16px] shrink-0">construction</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <div class="font-bold text-slate-200 uppercase tracking-wide text-[8px]">Incidents & Hazards</div>
+                        <div class="flex items-center gap-1.5">
+                          <span id="chip-incidents" class="severity-chip bg-[#ea580c]/15 text-[#ea580c] border border-[#ea580c]/25">--</span>
+                          <span class="expand-icon material-symbols-outlined text-slate-500 text-[14px]">expand_more</span>
+                        </div>
+                      </div>
+                      <p id="txt-incidents" class="text-slate-400 mt-0.5 truncate">N/A</p>
+                    </div>
+                  </div>
+                  <div class="hazard-detail">
+                    <div class="border-t border-[#1f2937]/50 pt-2.5 space-y-2">
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[#ea580c]/60 text-[12px] mt-0.5">report</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Active Incidents</div><p id="det-incidents-active" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[#ea580c]/60 text-[12px] mt-0.5">engineering</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Construction Zones</div><p id="det-incidents-constr" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[#ea580c]/60 text-[12px] mt-0.5">road</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Road Condition</div><p id="det-incidents-road" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Air Quality tile -->
+                <div class="hazard-tile p-3 bg-terminal-darkCard border border-[#1f2937]/60 border-l-2 border-l-[#10b981] rounded text-[10px] leading-relaxed" data-category="air" onclick="toggleHazardTile(this)">
+                  <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-[#10b981] text-[16px] shrink-0">air</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <div class="font-bold text-slate-200 uppercase tracking-wide text-[8px]">Air Quality Index</div>
+                        <div class="flex items-center gap-1.5">
+                          <span id="chip-air" class="severity-chip bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/25">--</span>
+                          <span class="expand-icon material-symbols-outlined text-slate-500 text-[14px]">expand_more</span>
+                        </div>
+                      </div>
+                      <p id="txt-air" class="text-slate-400 mt-0.5 truncate">N/A</p>
+                    </div>
+                  </div>
+                  <div class="hazard-detail">
+                    <div class="border-t border-[#1f2937]/50 pt-2.5 space-y-2">
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[#10b981]/60 text-[12px] mt-0.5">blur_on</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">PM2.5 / PM10 Levels</div><p id="det-air-pm" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[#10b981]/60 text-[12px] mt-0.5">ecg_heart</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Health Impact</div><p id="det-air-health" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[#10b981]/60 text-[12px] mt-0.5">masks</span>
+                        <div><div class="text-[7.5px] text-slate-500 uppercase tracking-wider">Precautions</div><p id="det-air-precaution" class="text-slate-300 text-[9.5px]">--</p></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-2 pt-1 select-none">
+                <!-- Opt for Route Button -->
+                <button 
+                  id="btn-opt-route" 
+                  class="w-full py-2.5 bg-terminal-accent text-terminal-bg hover:shadow-[0_0_12px_rgba(0,255,157,0.45)] transition duration-200 font-extrabold text-xs uppercase tracking-widest rounded cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-terminal-accent/15"
+                >
+                  <span class="material-symbols-outlined text-[15px]">navigation</span> Opt for Route & Travel
+                </button>
+                
+                <!-- Reset Button -->
+                <button 
+                  id="btn-reset" 
+                  class="w-full py-2 border border-[#1f2937] text-slate-400 font-bold text-xs uppercase tracking-widest rounded hover:bg-[#1f2937]/25 hover:text-slate-200 transition duration-200 cursor-pointer"
+                >
+                  Scan New Route
+                </button>
+              </div>
+            </div>
+
+          </section>
         </div>
 
-        <!-- Destination Input Box -->
-        <div class="relative">
-          <label class="block text-[10px] text-verdex-accent font-mono uppercase tracking-wider mb-1">Destination Coordinates</label>
-          <div class="relative">
-            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px] text-red-500">location_on</span>
-            <input 
-              id="dest-input" 
-              type="text" 
-              autocomplete="off" 
-              class="w-full pl-8 pr-3 py-1.5 bg-[#030605] border border-verdex-border focus:border-red-500 rounded text-xs text-white placeholder-slate-600 focus:outline-none transition" 
-              placeholder="Search destination..."
-            >
-          </div>
-          <!-- Autocomplete Dropdown List -->
-          <div id="dest-dropdown" class="absolute left-0 right-0 mt-1 bg-[#050c09] border border-verdex-border rounded-md shadow-2xl z-50 autocomplete-list hidden max-h-[160px] overflow-y-auto custom-scrollbar"></div>
+        <div class="text-[8px] text-slate-600 font-mono flex items-center justify-between border-t border-[#1f2937]/30 pt-3 select-none uppercase tracking-wider shrink-0 mt-4">
+          <span>Secure Link v4.2</span>
+          <span>BS-AI 2026</span>
         </div>
 
-        <!-- Error notification banner -->
-        <div id="inline-error" class="hidden p-2 rounded bg-red-950/40 border border-red-800 text-[11px] text-red-400 flex items-start gap-2">
-          <span class="material-symbols-outlined text-[14px] mt-0.5">error</span>
-          <span id="error-message">Error encountered.</span>
-        </div>
-
-        <!-- "Analyze Routes" CTA Button -->
-        <button 
-          id="analyze-btn" 
-          class="w-full py-2 bg-gradient-to-r from-verdex-primary to-verdex-light hover:from-verdex-light hover:to-emerald-400 text-white hover:text-black font-semibold text-xs tracking-wider uppercase rounded shadow-[0_2px_10px_rgba(11,94,67,0.3)] hover:shadow-[0_2px_15px_rgba(52,211,153,0.5)] active:translate-y-[1px] transition-all duration-200 flex items-center justify-center gap-1.5"
-        >
-          <span class="material-symbols-outlined text-[16px]">calculate</span>
-          Analyze routes
-        </button>
-
-      </div>
-
-      <div class="border-t border-verdex-border/40"></div>
-
-      <!-- Scored Route Alternatives Cards Section -->
-      <div class="space-y-3">
-        <h2 class="text-[10px] text-verdex-accent font-mono uppercase tracking-wider">Optimized Route Alternatives</h2>
-        
-        <!-- Empty state placeholder / results loader -->
-        <div id="routes-container" class="space-y-3">
-          <div class="p-5 text-center border border-dashed border-verdex-border/60 rounded bg-[#030605]/30">
-            <span class="material-symbols-outlined text-slate-600 text-3xl mb-1.5 block">route</span>
-            <p class="text-xs text-slate-500">Pins coordinates or search values above, then click Analyze.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="border-t border-verdex-border/40"></div>
-
-      <!-- AI Safety Agent Panel -->
-      <div class="bg-[#030605]/50 border border-verdex-border rounded-lg p-4 space-y-3.5">
-        
-        <!-- Header -->
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-verdex-accent text-[18px]">security</span>
-            <h3 class="text-xs font-bold text-white tracking-wide uppercase font-sans">AI Safety Agent</h3>
-          </div>
-          <div class="text-[8px] text-slate-500 font-mono">LLAMA 4 17B</div>
-        </div>
-
-        <!-- Inline Key entry box (Now Backend Badge) -->
-        <div class="flex items-center gap-2 bg-verdex-green/80 border border-verdex-border rounded px-2.5 py-1.5 text-xs">
-          <span class="material-symbols-outlined text-[14px] text-emerald-400">vpn_key</span>
-          <span class="text-[10px] text-emerald-400 font-mono font-medium">Backend Groq API Key active</span>
-        </div>
-
-        <!-- Analysis Scanner Trigger -->
-        <button 
-          id="scan-btn" 
-          disabled
-          class="w-full py-1.5 bg-[#081611] hover:bg-verdex-primary border border-verdex-border disabled:border-verdex-border/40 hover:border-verdex-accent disabled:hover:border-verdex-border/40 text-slate-400 hover:text-white disabled:text-slate-600 rounded text-xs transition duration-200 flex items-center justify-center gap-1.5 font-medium cursor-not-allowed"
-        >
-          <span class="material-symbols-outlined text-[15px]">security</span>
-          Scan for Hazards
-        </button>
-
-        <!-- Response output box -->
-        <div id="safety-output" class="hidden space-y-3 border-t border-verdex-border/30 pt-3">
-          <div class="flex items-center justify-between">
-            <span class="text-[9.5px] text-slate-500 font-mono uppercase tracking-wider">Safety Rating</span>
-            <span id="safety-badge" class="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono">--</span>
-          </div>
-          <p id="safety-text" class="text-[11px] leading-relaxed text-slate-300 font-sans"></p>
-        </div>
-
-      </div>
-
+      </main>
     </div>
-  </aside>
 
-  <!-- Right Map Panel -->
-  <main id="map" class="flex-1 h-full relative z-[1]"></main>
+    <!-- RIGHT PANEL: Full-bleed Map Panel -->
+    <div class="flex-grow h-[350px] md:h-full relative bg-[#06080b]">
+      <!-- Leaflet map element -->
+      <div id="map" class="w-full h-full z-10"></div>
+      
+      <!-- Premium dark inner-shadow styling -->
+      <div class="absolute inset-0 pointer-events-none border border-[#1f2937]/20 z-20"></div>
+    </div>
+
+  </div>
+
+  <!-- Recommendation Modal -->
+  <div id="recommendation-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
+    <div class="w-full max-w-sm bg-[#0d1117] border border-[#21262d] rounded-lg shadow-2xl p-5 space-y-4 font-mono select-none">
+      <h3 class="text-xs font-bold text-[#00ff9d] flex items-center gap-2 border-b border-[#21262d] pb-2 uppercase tracking-widest">
+        <span class="material-symbols-outlined text-sm">assistant_navigation</span> Smart Advice
+      </h3>
+      
+      <!-- suggestion message -->
+      <div class="bg-terminal-accentDim border border-[#00ff9d]/35 rounded p-3 text-[9px] text-slate-300 leading-normal">
+        <span class="text-[#00ff9d] font-bold uppercase tracking-wider text-[8px]">Suggestion:</span>
+        <p id="recommendation-text" class="mt-1 font-bold text-white text-[9.5px]"></p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-[8px] text-slate-500 uppercase tracking-widest font-bold">Select Mode of Transport</label>
+        
+        <!-- Options List -->
+        <div id="mode-options" class="space-y-2">
+          <!-- Dynamically generated mode options -->
+        </div>
+      </div>
+
+      <div class="flex gap-2.5 pt-2 text-[9px] font-bold">
+        <button 
+          id="btn-cancel-commute" 
+          class="flex-1 py-2 border border-[#21262d] text-slate-400 uppercase tracking-widest rounded hover:bg-slate-800 transition duration-200 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button 
+          id="btn-confirm-commute" 
+          class="flex-1 py-2 bg-[#00ff9d] text-[#0d1117] uppercase tracking-widest rounded hover:shadow-[0_0_12px_rgba(0,255,157,0.45)] transition duration-200 cursor-pointer font-extrabold"
+        >
+          Commence
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // =========================================================================
-    // Geographic Bounding Box for Pakistan (PK) pre-filter
+    // Core List of Pakistani Cities Grouped by Province
     // =========================================================================
-    function inPakistan(lat, lon) {
-      return lat >= 23.63 && lat <= 37.09 && lon >= 60.87 && lon <= 77.84;
-    }
+    const CITIES = {
+      "Punjab": [
+        "Lahore", "Faisalabad", "Rawalpindi", "Multan", "Gujranwala", 
+        "Sargodha", "Bahawalpur", "Sialkot", "Sahiwal", "Gujrat"
+      ],
+      "Sindh": [
+        "Karachi", "Hyderabad", "Sukkur", "Larkana", "Nawabshah", 
+        "Mirpurkhas", "Jacobabad", "Shikarpur", "Thatta"
+      ],
+      "Khyber Pakhtunkhwa (KPK)": [
+        "Peshawar", "Mardan", "Mingora", "Kohat", "Abbottabad", 
+        "Dera Ismail Khan", "Nowshera", "Swabi"
+      ],
+      "Balochistan": [
+        "Quetta", "Gwadar", "Turbat", "Khuzdar", "Sibi", 
+        "Chaman", "Dera Murad Jamali"
+      ],
+      "Islamabad": [
+        "Islamabad"
+      ],
+      "Azad Kashmir & Gilgit-Baltistan": [
+        "Muzaffarabad", "Mirpur", "Gilgit", "Skardu", "Hunza"
+      ]
+    };
+
+    const CITY_COORDS = {
+      "Lahore": { lat: 31.5497, lng: 74.3436 },
+      "Karachi": { lat: 24.8607, lng: 67.0011 },
+      "Islamabad": { lat: 33.6844, lng: 73.0479 },
+      "Peshawar": { lat: 34.0151, lng: 71.5249 },
+      "Quetta": { lat: 30.1798, lng: 66.9965 },
+      "Faisalabad": { lat: 31.4504, lng: 73.1350 },
+      "Rawalpindi": { lat: 33.5651, lng: 73.0169 },
+      "Multan": { lat: 30.1575, lng: 71.5249 },
+      "Gujranwala": { lat: 32.1877, lng: 74.1945 },
+      "Sargodha": { lat: 32.0836, lng: 72.6711 },
+      "Bahawalpur": { lat: 29.3544, lng: 71.6911 },
+      "Sialkot": { lat: 32.4945, lng: 74.5229 },
+      "Sahiwal": { lat: 30.6682, lng: 73.1114 },
+      "Gujrat": { lat: 32.5742, lng: 74.0754 },
+      "Hyderabad": { lat: 25.3960, lng: 68.3778 },
+      "Sukkur": { lat: 27.7244, lng: 68.8475 },
+      "Larkana": { lat: 27.5589, lng: 68.2099 },
+      "Nawabshah": { lat: 26.2483, lng: 68.4096 },
+      "Mirpurkhas": { lat: 25.5251, lng: 69.0159 },
+      "Jacobabad": { lat: 28.2810, lng: 68.4376 },
+      "Shikarpur": { lat: 27.9577, lng: 68.6380 },
+      "Thatta": { lat: 24.7474, lng: 67.9235 },
+      "Mardan": { lat: 34.1989, lng: 72.0497 },
+      "Mingora": { lat: 34.7758, lng: 72.3625 },
+      "Kohat": { lat: 33.5822, lng: 71.4492 },
+      "Abbottabad": { lat: 34.1688, lng: 73.2215 },
+      "Dera Ismail Khan": { lat: 31.8626, lng: 70.9019 },
+      "Nowshera": { lat: 33.9961, lng: 71.9748 },
+      "Swabi": { lat: 34.1202, lng: 72.4698 },
+      "Gwadar": { lat: 25.1216, lng: 62.3254 },
+      "Turbat": { lat: 26.0031, lng: 63.0544 },
+      "Khuzdar": { lat: 27.8084, lng: 66.6167 },
+      "Sibi": { lat: 29.5448, lng: 67.8764 },
+      "Chaman": { lat: 30.9236, lng: 66.4512 },
+      "Dera Murad Jamali": { lat: 28.5466, lng: 68.2230 },
+      "Muzaffarabad": { lat: 34.3700, lng: 73.4708 },
+      "Mirpur": { lat: 33.1481, lng: 73.7514 },
+      "Gilgit": { lat: 35.9208, lng: 74.3089 },
+      "Skardu": { lat: 35.2981, lng: 75.6333 },
+      "Hunza": { lat: 36.3167, lng: 74.6500 }
+    };
+
+    // Landmark database for rapid geocode mapping and offline resilience
+    const LOCAL_LANDMARKS = {
+      "Lahore": {
+        "gulberg": { lat: 31.5126, lng: 74.3524 },
+        "dha": { lat: 31.4697, lng: 74.4485 },
+        "johar": { lat: 31.4697, lng: 74.2728 },
+        "mall": { lat: 31.5580, lng: 74.3283 },
+        "walled": { lat: 31.5878, lng: 74.3168 },
+        "airport": { lat: 31.5216, lng: 74.4036 },
+        "model town": { lat: 31.4805, lng: 74.3262 },
+        "bahria": { lat: 31.3683, lng: 74.1817 }
+      },
+      "Karachi": {
+        "clifton": { lat: 24.8138, lng: 67.0309 },
+        "dha": { lat: 24.7938, lng: 67.0694 },
+        "saddar": { lat: 24.8615, lng: 67.0262 },
+        "gulshan": { lat: 24.9180, lng: 67.0971 },
+        "airport": { lat: 24.9065, lng: 67.1608 },
+        "nazimabad": { lat: 24.9174, lng: 67.0311 },
+        "karsaz": { lat: 24.8931, lng: 67.0894 }
+      },
+      "Islamabad": {
+        "blue area": { lat: 33.7116, lng: 73.0685 },
+        "f-6": { lat: 33.7299, lng: 73.0784 },
+        "f-7": { lat: 33.7215, lng: 73.0582 },
+        "g-9": { lat: 33.6897, lng: 73.0289 },
+        "i-8": { lat: 33.6685, lng: 73.0760 },
+        "centaurus": { lat: 33.7077, lng: 73.0503 }
+      }
+    };
 
     // =========================================================================
-    // Core Application State Variables
+    // Map State Variables & Handlers
     // =========================================================================
     let map;
-    let originCoords = null;
-    let destCoords = null;
-    let originMarker = null;
-    let destMarker = null;
-    let weatherData = null;
-    
-    // Polyline routing tracking
-    let polylines = {
-      eco: null,
-      fastest: null,
-      safest: null
+    let markerSrc = null;
+    let markerDst = null;
+    let routeLine = null; // fallback reference
+    let ecoRouteLine = null;
+    let altRouteLine = null;
+    let hazardCircles = [];
+    let lastSrcAddress = "";
+    let lastDstAddress = "";
+
+    // =========================================================================
+    // Application State Variables
+    // =========================================================================
+    const state = {
+      city: '',
+      source: '',
+      destination: ''
     };
-    let routesData = [];
-    let selectedCategory = null;
 
-    // Open-Meteo current center weather debounce
-    let weatherTimeout = null;
+    let activeStep = 1;
+    let activeRouteType = 'eco';
+    let safetyWizardAnalysis = null;
+    let routeOptimizationResult = null;
 
-    // Auto-complete references
-    const originInput = document.getElementById('origin-input');
-    const originDropdown = document.getElementById('origin-dropdown');
-    const destInput = document.getElementById('dest-input');
-    const destDropdown = document.getElementById('dest-dropdown');
-    const inlineError = document.getElementById('inline-error');
-    const errorMessage = document.getElementById('error-message');
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const routesContainer = document.getElementById('routes-container');
-    const scanBtn = document.getElementById('scan-btn');
-    const safetyOutput = document.getElementById('safety-output');
-    const safetyBadge = document.getElementById('safety-badge');
-    const safetyText = document.getElementById('safety-text');
+    // =========================================================================
+    // DOM Elements Mapping
+    // =========================================================================
+    const citySelect = document.getElementById('city-select');
+    const btnGotoStep2 = document.getElementById('btn-goto-step-2');
+    const viewStep1 = document.getElementById('view-step-1');
+    
+    const viewStep2 = document.getElementById('view-step-2');
+    const activeCityLabel = document.getElementById('active-city-label');
+    const btnChangeCity = document.getElementById('btn-change-city');
+    const cardSrcLbl = document.getElementById('card-src-lbl');
+    const cardDstLbl = document.getElementById('card-dst-lbl');
+    const inputSrc = document.getElementById('input-src');
+    const inputDst = document.getElementById('input-dst');
+    const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
+    const btnScan = document.getElementById('btn-scan');
+
+    const viewStep3 = document.getElementById('view-step-3');
+    const loaderContainer = document.getElementById('loader-container');
+    const loadBarFill = document.getElementById('load-bar-fill');
+    const loadBarText = document.getElementById('load-bar-text');
+    const loadPercentage = document.getElementById('load-percentage');
+    const consoleLogs = document.getElementById('console-logs');
+    
+    const errorPanel = document.getElementById('error-panel');
+    const errorText = document.getElementById('error-text');
+    const btnRetry = document.getElementById('btn-retry');
+    
+    const resultsPanel = document.getElementById('results-panel');
+    const txtRating = document.getElementById('txt-rating');
+    const badgeVerdict = document.getElementById('badge-verdict');
+    const txtWeather = document.getElementById('txt-weather');
+    const txtTraffic = document.getElementById('txt-traffic');
+    const txtIncidents = document.getElementById('txt-incidents');
+    const txtAir = document.getElementById('txt-air');
+    const btnReset = document.getElementById('btn-reset');
+    const btnOptRoute = document.getElementById('btn-opt-route');
+    const recModal = document.getElementById('recommendation-modal');
+    const recText = document.getElementById('recommendation-text');
+    const modeOptionsContainer = document.getElementById('mode-options');
+    const btnCancelCommute = document.getElementById('btn-cancel-commute');
+    const btnConfirmCommute = document.getElementById('btn-confirm-commute');
 
     // =========================================================================
     // Initializer
     // =========================================================================
     window.addEventListener('load', () => {
-      initMap();
-      setupAutocomplete(originInput, originDropdown, 'origin');
-      setupAutocomplete(destInput, destDropdown, 'destination');
-      setupGPS();
-      
-      analyzeBtn.addEventListener('click', analyzeRoutes);
-      scanBtn.addEventListener('click', scanRoadSafety);
+      populateCitiesDropdown();
+      initLeafletMap();
+      setupEventHandlers();
+      updateStepIndicator(1);
     });
 
-    // =========================================================================
-    // Map Setup
-    // =========================================================================
-    function initMap() {
-      // Centered on Lahore (31.5497° N, 74.3436° E)
-      const lahoreCoords = [31.5497, 74.3436];
-      map = L.map('map', {
-        zoomControl: false // Hide default zoom for premium layout
-      }).setView(lahoreCoords, 12);
-
-      // Premium Zoom controls at top right
-      L.control.zoom({
-        position: 'topright'
-      }).addTo(map);
-
-      // Dark CartoDB tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 20
-      }).addTo(map);
-
-      // Drag/move listener to dynamically update local weather strip
-      map.on('moveend', () => {
-        const center = map.getCenter();
-        debouncedFetchWeather(center.lat, center.lng);
-      });
-
-      // Initial weather load
-      fetchWeather(lahoreCoords[0], lahoreCoords[1]);
-
-      // Click to drop pins
-      map.on('click', onMapClick);
-    }
-
-    // =========================================================================
-    // Dynamic Weather Fetches
-    // =========================================================================
-    function debouncedFetchWeather(lat, lon) {
-      clearTimeout(weatherTimeout);
-      weatherTimeout = setTimeout(() => {
-        fetchWeather(lat, lon);
-      }, 500);
-    }
-
-    function fetchWeather(lat, lon) {
-      if (!inPakistan(lat, lon)) return;
-      document.getElementById('weather-coords').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-      
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,weather_code&hourly=visibility&forecast_days=1`;
-      
-      fetch(url)
-        .then(res => {
-          if (!res.ok) throw new Error('Weather API issue');
-          return res.json();
-        })
-        .then(data => {
-          const temp = data.current.temperature_2m;
-          const wind = data.current.wind_speed_10m;
-          const code = data.current.weather_code;
-          
-          let visibility = 10000;
-          if (data.hourly && data.hourly.visibility && data.hourly.visibility.length > 0) {
-            visibility = data.hourly.visibility[0]; // grab first hour
-          }
-
-          weatherData = { temp, wind, visibility, code };
-
-          // Convert code to text / icon
-          const wInfo = getWeatherMeta(code);
-
-          // Update UI
-          document.getElementById('weather-icon').textContent = wInfo.icon;
-          document.getElementById('weather-desc').textContent = wInfo.text;
-          document.getElementById('weather-temp').textContent = `${Math.round(temp)}°C`;
-          document.getElementById('weather-wind').textContent = `Wind: ${wind.toFixed(0)} km/h`;
-          document.getElementById('weather-vis').textContent = `Vis: ${(visibility / 1000).toFixed(1)} km`;
-        })
-        .catch(err => {
-          console.warn('Weather fetch failed, falling back to Lahorean spring defaults:', err);
-          // Standard Lahore default values
-          weatherData = { temp: 32, wind: 12, visibility: 8000, code: 0 };
-          document.getElementById('weather-icon').textContent = '☀️';
-          document.getElementById('weather-desc').textContent = 'Clear Sky (Sim)';
-          document.getElementById('weather-temp').textContent = '32°C';
-          document.getElementById('weather-wind').textContent = 'Wind: 12 km/h';
-          document.getElementById('weather-vis').textContent = 'Vis: 8.0 km';
-        });
-    }
-
-    function getWeatherMeta(code) {
-      const mapping = {
-        0: { text: "Clear Sky", icon: "☀️" },
-        1: { text: "Mainly Clear", icon: "🌤️" },
-        2: { text: "Partly Cloudy", icon: "⛅" },
-        3: { text: "Overcast", icon: "☁️" },
-        45: { text: "Foggy", icon: "🌫️" },
-        48: { text: "Depositing Rime Fog", icon: "🌫️" },
-        51: { text: "Light Drizzle", icon: "🌧️" },
-        53: { text: "Drizzle", icon: "🌧️" },
-        55: { text: "Heavy Drizzle", icon: "🌧️" },
-        61: { text: "Slight Rain", icon: "🌦️" },
-        63: { text: "Moderate Rain", icon: "🌧️" },
-        65: { text: "Heavy Rain", icon: "🌧️" },
-        80: { text: "Slight Showers", icon: "🌦️" },
-        95: { text: "Thunderstorm", icon: "🌩️" }
-      };
-      return mapping[code] || { text: "Clear Conditions", icon: "☀️" };
-    }
-
-    // =========================================================================
-    // Geocoder Autocomplete
-    // =========================================================================
-    function setupAutocomplete(inputEl, dropdownEl, type) {
-      let autocompleteTimeout = null;
-
-      inputEl.addEventListener('input', () => {
-        clearTimeout(autocompleteTimeout);
-        const query = inputEl.value.trim();
+    // Populate dropdown grouped by province
+    function populateCitiesDropdown() {
+      for (const province in CITIES) {
+        const group = document.createElement('optgroup');
+        group.label = province;
         
-        if (query.length < 3) {
-          dropdownEl.innerHTML = '';
-          dropdownEl.classList.add('hidden');
-          return;
-        }
+        CITIES[province].forEach(city => {
+          const opt = document.createElement('option');
+          opt.value = city;
+          opt.textContent = city;
+          group.appendChild(opt);
+        });
+        
+        citySelect.appendChild(group);
+      }
+    }
 
-        autocompleteTimeout = setTimeout(() => {
-          const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1&countrycodes=pk`;
+    // Initialize Map with dark-mode theme
+    function initLeafletMap() {
+      // Coordinates of center of Pakistan
+      map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([30.3753, 69.3451], 5);
+
+      // CartoDB Dark Matter tile layer
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      }).addTo(map);
+
+      // Add zoom control at bottom right
+      L.control.zoom({
+        position: 'bottomright'
+      }).addTo(map);
+
+      // Register map click for placing markers
+      map.on('click', function(e) {
+        if (activeStep !== 2) return;
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        
+        if (!inputSrc.value.trim()) {
+          setMarkerCoords(lat, lng, 'src');
+        } else if (!inputDst.value.trim()) {
+          setMarkerCoords(lat, lng, 'dst');
+        }
+      });
+    }
+
+    // Set up step status styling in top navigation bar
+    function updateStepIndicator(step) {
+      activeStep = step;
+      const ind1 = document.getElementById('step-ind-1');
+      const ind2 = document.getElementById('step-ind-2');
+      const ind3 = document.getElementById('step-ind-3');
+      
+      if (step === 1) {
+        ind1.innerHTML = '1';
+        ind1.className = 'text-terminal-accent font-bold glow-text-green';
+        ind2.innerHTML = '2';
+        ind2.className = 'text-slate-500';
+        ind3.innerHTML = '3';
+        ind3.className = 'text-slate-500';
+      } else if (step === 2) {
+        ind1.innerHTML = '✓ 1';
+        ind1.className = 'text-terminal-accent/70 font-mono';
+        ind2.innerHTML = '2';
+        ind2.className = 'text-terminal-accent font-bold glow-text-green';
+        ind3.innerHTML = '3';
+        ind3.className = 'text-slate-500';
+      } else if (step === 3) {
+        ind1.innerHTML = '✓ 1';
+        ind1.className = 'text-terminal-accent/70 font-mono';
+        ind2.innerHTML = '✓ 2';
+        ind2.className = 'text-terminal-accent/70 font-mono';
+        ind3.innerHTML = '3';
+        ind3.className = 'text-terminal-accent font-bold glow-text-green';
+      }
+    }
+
+    // =========================================================================
+    // Event Handlers Setup
+    // =========================================================================
+    function setupEventHandlers() {
+      // Step 1: Select Dropdown change
+      citySelect.addEventListener('change', () => {
+        if (citySelect.value) {
+          btnGotoStep2.disabled = false;
+          btnGotoStep2.classList.remove('text-slate-600', 'bg-terminal-accent/10', 'border-terminal-accent/30', 'cursor-not-allowed');
+          btnGotoStep2.classList.add('text-terminal-bg', 'bg-terminal-accent', 'border-terminal-accent', 'hover:shadow-[0_0_12px_rgba(0,255,157,0.45)]', 'cursor-pointer');
           
-          fetch(url)
-            .then(res => {
-              if (!res.ok) throw new Error('Nominatim autocomplete rate limit');
-              return res.json();
-            })
-            .then(data => {
-              dropdownEl.innerHTML = '';
-              if (data.length === 0) {
-                dropdownEl.classList.add('hidden');
-                return;
-              }
+          // Fly map to selected city coordinates
+          const coords = CITY_COORDS[citySelect.value];
+          if (coords && map) {
+            map.flyTo([coords.lat, coords.lng], 12, { animate: true, duration: 1.5 });
+          }
+        }
+      });
 
-              dropdownEl.classList.remove('hidden');
-              data.forEach(item => {
-                const choice = document.createElement('div');
-                choice.className = 'px-3 py-2 text-[11px] hover:bg-verdex-primary border-b border-verdex-border/40 cursor-pointer text-slate-300 hover:text-white transition duration-150 truncate';
-                choice.textContent = item.display_name;
-                
-                choice.addEventListener('click', () => {
-                  inputEl.value = item.display_name;
-                  dropdownEl.classList.add('hidden');
-                  
-                  const coords = { lat: parseFloat(item.lat), lon: parseFloat(item.lon) };
-                  if (type === 'origin') {
-                    originCoords = coords;
-                    updateMapMarker('origin', coords);
-                  } else {
-                    destCoords = coords;
-                    updateMapMarker('destination', coords);
-                  }
-                  
-                  fitMarkers();
-                  clearInlineError();
-                });
-                
-                dropdownEl.appendChild(choice);
-              });
-            })
-            .catch(err => {
-              console.error(err);
-              showInlineError('Geocoder temporarily unavailable. Please try drop pin or clear text.');
+      // Continue Button Step 1
+      btnGotoStep2.addEventListener('click', () => {
+        if (!citySelect.value) return;
+        state.city = citySelect.value;
+        activeCityLabel.textContent = state.city;
+        
+        // Transition Views
+        viewStep1.classList.add('hidden');
+        viewStep2.classList.remove('hidden');
+        updateStepIndicator(2);
+        checkStep2Inputs();
+      });
+
+      // Step 2 inputs live typist updates
+      inputSrc.addEventListener('input', () => {
+        const val = inputSrc.value.trim();
+        cardSrcLbl.textContent = val ? val : "Awaiting input...";
+        cardSrcLbl.className = val ? "text-white font-bold" : "italic text-slate-500";
+        checkStep2Inputs();
+        triggerLiveRouting();
+      });
+
+      inputDst.addEventListener('input', () => {
+        const val = inputDst.value.trim();
+        cardDstLbl.textContent = val ? val : "Awaiting input...";
+        cardDstLbl.className = val ? "text-white font-bold" : "italic text-slate-500";
+        checkStep2Inputs();
+        triggerLiveRouting();
+      });
+
+      // Change City link in Step 2
+      btnChangeCity.addEventListener('click', backToStep1);
+      btnBackToStep1.addEventListener('click', backToStep1);
+
+      // Scan Trigger Step 2
+      btnScan.addEventListener('click', () => {
+        if (!inputSrc.value.trim() || !inputDst.value.trim()) return;
+        state.source = inputSrc.value.trim();
+        state.destination = inputDst.value.trim();
+        
+        runHazardScan();
+      });
+
+      btnRetry.addEventListener('click', runHazardScan);
+      btnReset.addEventListener('click', resetAll);
+
+      btnOptRoute.addEventListener('click', () => {
+        const activeRoute = routeOptimizationResult ? (activeRouteType === 'eco' ? routeOptimizationResult.eco_route : routeOptimizationResult.alt_route) : null;
+        const activeAnalysis = safetyWizardAnalysis ? safetyWizardAnalysis[activeRouteType] : null;
+
+        let recommendedMode = "Car";
+        let recommendationText = "Use car, roads are empty.";
+
+        if (activeRoute) {
+          const isPublicTransportAvailable = activeRoute.mode.toLowerCase().includes("metro") || activeRoute.mode.toLowerCase().includes("bus");
+          const isTrafficCongested = activeAnalysis && (activeAnalysis.traffic_severity === "SEVERE" || activeAnalysis.traffic_severity === "MODERATE");
+
+          if (isPublicTransportAvailable) {
+            recommendedMode = "Public transport";
+            recommendationText = "Public transport is available, use it for less emission.";
+          } else if (isTrafficCongested) {
+            recommendedMode = "Bike";
+            recommendationText = "Use bike because traffic is congested.";
+          } else {
+            recommendedMode = "Car";
+            recommendationText = "Use car, roads are empty.";
+          }
+        }
+
+        recText.textContent = recommendationText;
+
+        // Render options list
+        const modesList = [
+          { val: "Public transport", label: "Public transport", basePoints: 5, icon: "directions_bus" },
+          { val: "Bike", label: "Bike", basePoints: 3, icon: "pedal_bike" },
+          { val: "Car", label: "Car", basePoints: 1, icon: "directions_car" }
+        ];
+
+        let selectedOption = recommendedMode;
+
+        function renderOptions() {
+          modeOptionsContainer.innerHTML = '';
+          modesList.forEach(m => {
+            const isRecommended = m.val === recommendedMode;
+            const points = isRecommended ? m.basePoints + 2 : m.basePoints;
+            const isSelected = m.val === selectedOption;
+            
+            const card = document.createElement('div');
+            card.className = `flex items-center justify-between p-3 rounded-lg border cursor-pointer transition duration-150 ${
+              isSelected 
+                ? 'bg-[#00ff9d]/15 border-[#00ff9d]/60 shadow-[0_0_8px_rgba(0,255,157,0.15)] text-white' 
+                : 'bg-terminal-darkCard border-[#1f2937]/50 text-slate-300 hover:border-slate-600'
+            }`;
+            
+            card.innerHTML = `
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[16px] ${isSelected ? 'text-[#00ff9d]' : 'text-slate-400'}">${m.icon}</span>
+                <span class="font-bold text-[10px] tracking-wide">${m.label}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 text-[8px] font-bold rounded ${
+                  isSelected
+                    ? 'bg-[#00ff9d]/20 text-[#00ff9d] border border-[#00ff9d]/30'
+                    : 'bg-[#1f2937]/50 text-slate-400'
+                }">+${points} pts</span>
+                ${isRecommended ? `<span class="px-1.5 py-0.5 text-[7px] font-bold rounded bg-[#00ff9d]/10 border border-[#00ff9d]/25 text-[#00ff9d] tracking-widest uppercase">REC</span>` : ''}
+              </div>
+            `;
+            
+            card.addEventListener('click', () => {
+              selectedOption = m.val;
+              renderOptions();
             });
-        }, 300);
-      });
-
-      // Close autocomplete on click outside
-      document.addEventListener('click', (e) => {
-        if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
-          dropdownEl.classList.add('hidden');
-        }
-      });
-    }
-
-    // =========================================================================
-    // GPS / Browser Geolocation
-    // =========================================================================
-    function setupGPS() {
-      const gpsBtn = document.getElementById('gps-button');
-      
-      gpsBtn.addEventListener('click', () => {
-        if (!navigator.geolocation) {
-          showInlineError('Geolocation API is not supported by your browser.');
-          return;
-        }
-
-        gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin text-emerald-400">sync</span>`;
-        gpsBtn.disabled = true;
-
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            if (!inPakistan(lat, lon)) {
-              showInlineError('GPS location is outside of Pakistan boundaries.');
-              gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">my_location</span>`;
-              gpsBtn.disabled = false;
-              return;
-            }
-            originCoords = { lat, lon };
-
-            updateMapMarker('origin', originCoords);
-            map.setView([lat, lon], 14);
-            reverseGeocode(lat, lon, 'origin');
-
-            gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">my_location</span>`;
-            gpsBtn.disabled = false;
-            clearInlineError();
-          },
-          (err) => {
-            console.error(err);
-            showInlineError('GPS failed to capture location coordinates.');
-            gpsBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">my_location</span>`;
-            gpsBtn.disabled = false;
-          },
-          { enableHighAccuracy: true, timeout: 6000 }
-        );
-      });
-    }
-
-    // =========================================================================
-    // Reverse Geocoding
-    // =========================================================================
-    function reverseGeocode(lat, lon, type) {
-      if (!inPakistan(lat, lon)) return;
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
-      
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          const name = data.display_name || `Location at ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-          if (type === 'origin') {
-            originInput.value = name;
-          } else {
-            destInput.value = name;
-          }
-          clearInlineError();
-        })
-        .catch(err => {
-          console.warn('Reverse geocode error:', err);
-          const fallback = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-          if (type === 'origin') {
-            originInput.value = fallback;
-          } else {
-            destInput.value = fallback;
-          }
-        });
-    }
-
-    // =========================================================================
-    // Pin Drop Interactions
-    // =========================================================================
-    function onMapClick(e) {
-      const lat = e.latlng.lat;
-      const lon = e.latlng.lng;
-      if (!inPakistan(lat, lon)) {
-        showInlineError('Selected location must be within Pakistan boundaries.');
-        return;
-      }
-
-      if (!originCoords) {
-        originCoords = { lat, lon };
-        updateMapMarker('origin', originCoords);
-        reverseGeocode(lat, lon, 'origin');
-      } else if (!destCoords) {
-        destCoords = { lat, lon };
-        updateMapMarker('destination', destCoords);
-        reverseGeocode(lat, lon, 'destination');
-        fitMarkers();
-      } else {
-        // If both exist, clicking updates the destination pin
-        destCoords = { lat, lon };
-        updateMapMarker('destination', destCoords);
-        reverseGeocode(lat, lon, 'destination');
-        fitMarkers();
-      }
-    }
-
-    // =========================================================================
-    // Draw / Drag Map Markers
-    // =========================================================================
-    function updateMapMarker(type, coords) {
-      const customIcon = L.divIcon({
-        className: 'custom-div-marker',
-        html: type === 'origin' 
-          ? `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]">
-               <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></div>
-             </div>`
-          : `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/20 border border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]">
-               <div class="w-3.5 h-3.5 rounded-full bg-red-500"></div>
-             </div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
-
-      if (type === 'origin') {
-        if (originMarker) {
-          originMarker.setLatLng([coords.lat, coords.lon]);
-        } else {
-          originMarker = L.marker([coords.lat, coords.lon], { icon: customIcon, draggable: true }).addTo(map);
-          originMarker.on('dragend', (e) => {
-            const pos = e.target.getLatLng();
-            if (!inPakistan(pos.lat, pos.lng)) {
-              showInlineError('Dropped pin is outside of Pakistan boundaries.');
-              originMarker.setLatLng([originCoords.lat, originCoords.lon]);
-              return;
-            }
-            originCoords = { lat: pos.lat, lon: pos.lng };
-            reverseGeocode(pos.lat, pos.lng, 'origin');
-            fitMarkers();
+            
+            modeOptionsContainer.appendChild(card);
           });
         }
-      } else {
-        if (destMarker) {
-          destMarker.setLatLng([coords.lat, coords.lon]);
-        } else {
-          destMarker = L.marker([coords.lat, coords.lon], { icon: customIcon, draggable: true }).addTo(map);
-          destMarker.on('dragend', (e) => {
-            const pos = e.target.getLatLng();
-            if (!inPakistan(pos.lat, pos.lng)) {
-              showInlineError('Dropped pin is outside of Pakistan boundaries.');
-              destMarker.setLatLng([destCoords.lat, destCoords.lon]);
-              return;
-            }
-            destCoords = { lat: pos.lat, lon: pos.lng };
-            reverseGeocode(pos.lat, pos.lng, 'destination');
-            fitMarkers();
-          });
-        }
-      }
-    }
 
-    function fitMarkers() {
-      if (originCoords && destCoords) {
-        const bounds = L.latLngBounds(
-          [originCoords.lat, originCoords.lon],
-          [destCoords.lat, destCoords.lon]
-        );
-        map.fitBounds(bounds, { padding: [50, 50] });
-      }
-    }
+        renderOptions();
+        recModal.classList.remove('hidden');
 
-    // =========================================================================
-    // OSRM Routes Fetching & Scoring
-    // =========================================================================
-    function analyzeRoutes() {
-      if (!originCoords || !destCoords) {
-        showInlineError('Please input or select both Origin and Destination first.');
-        return;
-      }
-      if (!inPakistan(originCoords.lat, originCoords.lon) || !inPakistan(destCoords.lat, destCoords.lon)) {
-        showInlineError('Routes are restricted to Pakistan (PK) boundaries.');
-        return;
-      }
+        // Confirm button action
+        const currentConfirmBtn = document.getElementById('btn-confirm-commute');
+        const newConfirmBtn = currentConfirmBtn.cloneNode(true);
+        currentConfirmBtn.parentNode.replaceChild(newConfirmBtn, currentConfirmBtn);
 
-      clearInlineError();
-      analyzeBtn.disabled = true;
-      analyzeBtn.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin">sync</span> Analyzing...`;
-      routesContainer.innerHTML = `
-        <div class="flex flex-col items-center justify-center p-8 space-y-2 border border-verdex-border/40 rounded bg-[#030605]/25 animate-pulse">
-          <div class="w-6 h-6 border-2 border-verdex-accent border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-[11px] text-slate-500 font-mono">Running OSRM analytics...</p>
-        </div>
-      `;
+        const currentCancelBtn = document.getElementById('btn-cancel-commute');
+        const newCancelBtn = currentCancelBtn.cloneNode(true);
+        currentCancelBtn.parentNode.replaceChild(newCancelBtn, currentCancelBtn);
 
-      // Clear any prior polylines
-      Object.keys(polylines).forEach(key => {
-        if (polylines[key]) {
-          map.removeLayer(polylines[key]);
-          polylines[key] = null;
-        }
-      });
+        newCancelBtn.addEventListener('click', () => {
+          recModal.classList.add('hidden');
+        });
 
-      // Fetch driving route alternatives (alternatives=true gets secondary routes)
-      const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?alternatives=true&geometries=geojson&overview=full`;
+        newConfirmBtn.addEventListener('click', () => {
+          recModal.classList.add('hidden');
+          btnOptRoute.disabled = true;
+          btnOptRoute.textContent = "Commencing Commute...";
 
-      fetch(url)
-        .then(res => {
-          if (!res.ok) throw new Error('OSRM mapping engine returned invalid coordinates or was unresponsive.');
-          return res.json();
-        })
-        .then(data => {
-          if (!data.routes || data.routes.length === 0) {
-            throw new Error('No driving routes found between coordinates.');
+          const cityCoords = CITY_COORDS[state.city] || { lat: 31.5497, lng: 74.3436 };
+          let latSrcVal = cityCoords.lat;
+          let lngSrcVal = cityCoords.lng;
+          if (markerSrc) {
+            latSrcVal = markerSrc.getLatLng().lat;
+            lngSrcVal = markerSrc.getLatLng().lng;
+          }
+          let latDstVal = cityCoords.lat + 0.005;
+          let lngDstVal = cityCoords.lng + 0.005;
+          if (markerDst) {
+            latDstVal = markerDst.getLatLng().lat;
+            lngDstVal = markerDst.getLatLng().lng;
           }
 
-          processRoutes(data.routes);
-        })
-        .catch(err => {
-          console.error(err);
-          showInlineError(err.message || 'Route service currently offline.');
-          routesContainer.innerHTML = `
-            <div class="p-5 text-center border border-dashed border-red-900/30 rounded bg-red-950/10">
-              <span class="material-symbols-outlined text-red-500 text-3xl mb-1.5 block">report_problem</span>
-              <p class="text-xs text-red-400">Failed to analyze routes.</p>
-            </div>
-          `;
-        })
-        .finally(() => {
-          analyzeBtn.disabled = false;
-          analyzeBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">calculate</span> Analyze routes`;
+          const finalPoints = modesList.find(m => m.val === selectedOption).basePoints + (selectedOption === recommendedMode ? 2 : 0);
+          const BACKEND_URL = 'http://localhost:8000';
+
+          fetch(`${BACKEND_URL}/api/routes/optimize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: localStorage.getItem('verdex_user')
+                ? JSON.parse(localStorage.getItem('verdex_user')).user_id
+                : 'demo-user-00000000-0000-0000-0000-000000000001',
+              origin: { lat: latSrcVal, lng: lngSrcVal },
+              destination: { lat: latDstVal, lng: lngDstVal },
+              preferences: { max_walk_time_mins: 10 },
+              route_type: activeRouteType,
+              persist: true,
+              selected_mode: selectedOption,
+              points_earned: finalPoints,
+              traffic_severity: activeAnalysis ? activeAnalysis.traffic_severity : "LOW"
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            console.log("Selected commute persisted with mode:", selectedOption, "points:", finalPoints);
+            btnOptRoute.textContent = "Commenced Success!";
+            window.parent.postMessage({ type: 'ROUTE_SAVED' }, '*');
+            
+            setTimeout(() => {
+              btnOptRoute.disabled = false;
+              btnOptRoute.innerHTML = '<span class="material-symbols-outlined text-[15px]">navigation</span> Opt for Route & Travel';
+            }, 1500);
+          })
+          .catch(err => {
+            console.error("Failed to persist selected route:", err);
+            btnOptRoute.textContent = "Error, Retry?";
+            btnOptRoute.disabled = false;
+          });
         });
-    }
-
-    function processRoutes(rawRoutes) {
-      // 1. Format routes
-      routesData = rawRoutes.map((route, i) => {
-        const distKm = route.distance / 1000.0;
-        const durMin = route.duration / 60.0;
-        const speed = distKm / (durMin / 60.0); // km/h
-        const co2G = Math.round(distKm * 210); // Standard car is ~210g CO2 per km
-
-        return {
-          index: i,
-          distance: distKm,
-          duration: durMin,
-          avgSpeed: speed,
-          co2: co2G,
-          geometry: route.geometry
-        };
       });
-
-      // 2. Score calculations
-      // Weather penalty derived from wind speed and visibility
-      let windVal = weatherData ? weatherData.wind : 10;
-      let visVal = weatherData ? weatherData.visibility : 10000;
-      
-      let normWind = Math.min(1.0, windVal / 60.0);
-      let normVis = Math.max(0.0, 1.0 - (visVal / 10000.0));
-      let weatherPenalty = (normWind + normVis) / 2.0; // range 0 to 1
-
-      // Find max values for normalization
-      let maxDist = Math.max(...routesData.map(r => r.distance));
-      let maxDur = Math.max(...routesData.map(r => r.duration));
-      if (maxDist === 0) maxDist = 1;
-      if (maxDur === 0) maxDur = 1;
-
-      const scored = routesData.map(r => {
-        let normD = r.distance / maxDist;
-        let normT = r.duration / maxDur;
-
-        // Composite weights
-        let ecoScore = (0.5 * normD) + (0.2 * normT) + (0.3 * weatherPenalty);
-        let speedScore = (0.1 * normD) + (0.6 * normT) + (0.3 * weatherPenalty);
-        let safetyScore = (0.2 * normD) + (0.2 * normT) + (0.6 * weatherPenalty);
-
-        return {
-          ...r,
-          ecoScore,
-          speedScore,
-          safetyScore
-        };
-      });
-
-      // 3. Assign lowest score per category
-      const ecoRoute = scored.reduce((prev, curr) => prev.ecoScore < curr.ecoScore ? prev : curr);
-      const speedRoute = scored.reduce((prev, curr) => prev.speedScore < curr.speedScore ? prev : curr);
-      const safetyRoute = scored.reduce((prev, curr) => prev.safetyScore < curr.safetyScore ? prev : curr);
-
-      // Store selection mapping
-      routesData = {
-        eco: ecoRoute,
-        fastest: speedRoute,
-        safest: safetyRoute
-      };
-
-      // 4. Render route cards
-      routesContainer.innerHTML = '';
-      
-      renderRouteCard('eco', 'Eco Green', 'eco', ecoRoute, 'text-emerald-400');
-      renderRouteCard('fastest', 'Fastest', 'speed', speedRoute, 'text-blue-400');
-      renderRouteCard('safest', 'Safest', 'shield_with_heart', safetyRoute, 'text-orange-400');
-
-      // 5. Draw map lines
-      // Draw Eco Green (Green)
-      polylines.eco = L.geoJSON(ecoRoute.geometry, {
-        style: { color: '#10b981', weight: 4, opacity: 0.6 }
-      }).addTo(map);
-      polylines.eco.bindTooltip('Eco Green Route', { sticky: true });
-
-      // Draw Fastest (Blue)
-      polylines.fastest = L.geoJSON(speedRoute.geometry, {
-        style: { color: '#3b82f6', weight: 4, opacity: 0.6 }
-      }).addTo(map);
-      polylines.fastest.bindTooltip('Fastest Route', { sticky: true });
-
-      // Draw Safest (Orange)
-      polylines.safest = L.geoJSON(safetyRoute.geometry, {
-        style: { color: '#f97316', weight: 4, opacity: 0.6 }
-      }).addTo(map);
-      polylines.safest.bindTooltip('Safest Route', { sticky: true });
-
-      // Highlight the first route (Eco Green) by default
-      selectRoute('eco');
-      toggleScanButtonState();
     }
 
-    function renderRouteCard(key, label, icon, route, colorClass) {
-      const card = document.createElement('div');
-      card.id = `card-${key}`;
-      card.className = `route-card p-3 bg-[#030605]/50 hover:bg-[#030605]/80 border border-verdex-border/60 hover:border-emerald-500/40 rounded-lg cursor-pointer transition-all duration-300 flex items-start justify-between select-none`;
+    function backToStep1() {
+      viewStep2.classList.add('hidden');
+      viewStep1.classList.remove('hidden');
+      updateStepIndicator(1);
       
-      card.innerHTML = `
-        <div class="space-y-1">
-          <div class="flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[16px] ${colorClass}">${icon}</span>
-            <span class="text-xs font-bold text-white uppercase tracking-wide font-sans">${label}</span>
-          </div>
-          <div class="text-[10px] text-slate-400 font-mono space-x-2">
-            <span>${route.distance.toFixed(1)} km</span>
-            <span class="text-slate-600">•</span>
-            <span>${route.duration.toFixed(0)} mins</span>
-          </div>
-        </div>
-        <div class="text-right">
-          <div class="text-xs font-bold font-mono text-emerald-400">${route.co2}g</div>
-          <div class="text-[9px] text-slate-500 font-mono tracking-tighter">CO₂ Est.</div>
-        </div>
-      `;
-
-      card.addEventListener('click', () => selectRoute(key));
-      routesContainer.appendChild(card);
+      // Reset map view to Pakistan
+      clearMapElements();
+      if (map) {
+        map.flyTo([30.3753, 69.3451], 5, { animate: true, duration: 1.2 });
+      }
     }
 
-    let lastSavedRouteKey = null;
+    function checkStep2Inputs() {
+      const srcFilled = inputSrc.value.trim().length > 0;
+      const dstFilled = inputDst.value.trim().length > 0;
+      
+      if (srcFilled && dstFilled) {
+        btnScan.disabled = false;
+        btnScan.classList.remove('text-slate-600', 'bg-terminal-accent/10', 'border-terminal-accent/30', 'cursor-not-allowed');
+        btnScan.classList.add('text-terminal-bg', 'bg-terminal-accent', 'border-terminal-accent', 'hover:shadow-[0_0_12px_rgba(0,255,157,0.45)]', 'cursor-pointer');
+      } else {
+        btnScan.disabled = true;
+        btnScan.classList.add('text-slate-600', 'bg-terminal-accent/10', 'border-terminal-accent/30', 'cursor-not-allowed');
+        btnScan.classList.remove('text-terminal-bg', 'bg-terminal-accent', 'border-terminal-accent', 'hover:shadow-[0_0_12px_rgba(0,255,157,0.45)]', 'cursor-pointer');
+      }
+    }
 
-    function saveRouteToBackend(route, category) {
-      const userDataStr = localStorage.getItem('verdex_user');
-      const user = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = user ? user.user_id : 'demo-user-00000000-0000-0000-0000-000000000001';
+    // =========================================================================
+    // Map Element Plotting & Styling
+    // =========================================================================
+    function getLocalGeocode(text, city) {
+      const clean = text.toLowerCase().trim();
+      const cityLandmarks = LOCAL_LANDMARKS[city];
+      if (cityLandmarks) {
+        for (const key in cityLandmarks) {
+          if (clean.includes(key)) {
+            return cityLandmarks[key];
+          }
+        }
+      }
+      return null;
+    }
 
-      const body = {
-        user_id: userId,
-        origin: { lat: originCoords.lat, lng: originCoords.lon },
-        destination: { lat: destCoords.lat, lng: destCoords.lon },
-        preferences: { max_walk_time_mins: 10 }
-      };
+    function updatePreviewPolyline() {
+      if (markerSrc && markerDst) {
+        const p1 = markerSrc.getLatLng();
+        const p2 = markerDst.getLatLng();
+        if (routeLine) {
+          routeLine.setLatLngs([p1, p2]);
+        } else {
+          routeLine = L.polyline([p1, p2], {
+            color: '#00ff9d',
+            weight: 4,
+            dashArray: '6, 9',
+            className: 'neon-route-line'
+          }).addTo(map);
+        }
+      }
+    }
 
-      const BACKEND_URL = 'http://localhost:8000';
-
-      fetch(`${BACKEND_URL}/api/routes/optimize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    function setMarkerCoords(lat, lng, type) {
+      const coordStr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      if (type === 'src') {
+        lastSrcAddress = coordStr;
+        inputSrc.value = coordStr;
+        cardSrcLbl.textContent = coordStr;
+        cardSrcLbl.className = 'text-white font-bold';
+        
+        const greenIcon = L.divIcon({
+          className: 'custom-map-marker',
+          html: '<div class="w-5 h-5 bg-emerald-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center relative"><div class="absolute inset-0 rounded-full bg-emerald-400 opacity-75 animate-ping"></div><div class="w-1.5 h-1.5 bg-white rounded-full relative z-10"></div></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+        if (markerSrc) map.removeLayer(markerSrc);
+        markerSrc = L.marker([lat, lng], { icon: greenIcon, draggable: true }).addTo(map)
+          .bindPopup(`<b>Origin</b>: ${coordStr}`);
+          
+        markerSrc.on('dragend', () => {
+          reverseGeocode(markerSrc.getLatLng().lat, markerSrc.getLatLng().lng, 'src');
+        });
+      } else {
+        lastDstAddress = coordStr;
+        inputDst.value = coordStr;
+        cardDstLbl.textContent = coordStr;
+        cardDstLbl.className = 'text-white font-bold';
+        
+        const redIcon = L.divIcon({
+          className: 'custom-map-marker',
+          html: '<div class="w-5 h-5 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center relative"><div class="w-1.5 h-1.5 bg-white rounded-full relative z-10"></div></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+        if (markerDst) map.removeLayer(markerDst);
+        markerDst = L.marker([lat, lng], { icon: redIcon, draggable: true }).addTo(map)
+          .bindPopup(`<b>Destination</b>: ${coordStr}`);
+          
+        markerDst.on('dragend', () => {
+          reverseGeocode(markerDst.getLatLng().lat, markerDst.getLatLng().lng, 'dst');
+        });
+      }
+ 
+      updatePreviewPolyline();
+      reverseGeocode(lat, lng, type);
+      checkStep2Inputs();
+    }
+ 
+    function reverseGeocode(lat, lng, type) {
+      const coordStr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+      .then(res => res.json())
       .then(data => {
-        console.log('Route successfully saved to backend database:', data);
-        // Notify parent window to update dashboard stats!
-        window.parent.postMessage({ type: 'ROUTE_SAVED' }, '*');
+        const address = data.address;
+        let name = "";
+        if (address) {
+          name = address.road || address.suburb || address.neighbourhood || address.city_district || address.county || "";
+        }
+        if (!name) {
+          name = data.display_name ? data.display_name.split(',')[0] : coordStr;
+        }
+        
+        if (type === 'src') {
+          lastSrcAddress = name;
+          inputSrc.value = name;
+          cardSrcLbl.textContent = name;
+        } else {
+          lastDstAddress = name;
+          inputDst.value = name;
+          cardDstLbl.textContent = name;
+        }
       })
       .catch(err => {
-        console.error('Error saving route to backend database:', err);
+        console.error("Reverse geocoding failed:", err);
       });
     }
 
-    function selectRoute(category) {
-      selectedCategory = category;
-
-      // Highlight polyline on map
-      // Reset all styles to original faded look
-      if (polylines.eco) polylines.eco.setStyle({ color: '#10b981', weight: 4, opacity: 0.4 });
-      if (polylines.fastest) polylines.fastest.setStyle({ color: '#3b82f6', weight: 4, opacity: 0.4 });
-      if (polylines.safest) polylines.safest.setStyle({ color: '#f97316', weight: 4, opacity: 0.4 });
-
-      // Set active polyline
-      const activeLine = polylines[category];
-      const activeColor = category === 'eco' ? '#10b981' : (category === 'fastest' ? '#3b82f6' : '#f97316');
-      
-      if (activeLine) {
-        activeLine.setStyle({ color: activeColor, weight: 7, opacity: 0.95 });
-        activeLine.bringToFront();
-        map.fitBounds(activeLine.getBounds(), { padding: [50, 50] });
-      }
-
-      // Update card visual highlight classes
-      document.querySelectorAll('.route-card').forEach(c => {
-        c.classList.remove('border-emerald-500', 'bg-verdex-primary/10', 'shadow-[0_0_10px_rgba(52,211,153,0.15)]');
-      });
-      const selectedCard = document.getElementById(`card-${category}`);
-      if (selectedCard) {
-        selectedCard.classList.add('border-emerald-500', 'bg-verdex-primary/10', 'shadow-[0_0_10px_rgba(52,211,153,0.15)]');
-      }
-
-      // Clear safety outputs on selection change so the user can scan the fresh selection
-      safetyOutput.classList.add('hidden');
-
-      // Auto-trigger safety analysis on selection
-      scanRoadSafety();
-
-      // Save selected route to backend database (deduplicated)
-      const route = routesData[category];
-      const routeKey = `${originCoords.lat.toFixed(4)},${originCoords.lon.toFixed(4)}-${destCoords.lat.toFixed(4)},${destCoords.lon.toFixed(4)}-${category}`;
-      if (lastSavedRouteKey !== routeKey) {
-        lastSavedRouteKey = routeKey;
-        saveRouteToBackend(route, category);
-      }
+    let routingTimeout = null;
+    function triggerLiveRouting() {
+      if (routingTimeout) clearTimeout(routingTimeout);
+      routingTimeout = setTimeout(() => {
+        updateMapRoute();
+      }, 800); // Debounce typing
     }
 
-    // =========================================================================
-    // Button states / API validation checks
-    // =========================================================================
-    function toggleScanButtonState() {
-      const hasRoute = routesData && routesData[selectedCategory];
-
-      if (hasRoute) {
-        scanBtn.disabled = false;
-        scanBtn.classList.remove('cursor-not-allowed', 'opacity-50');
-      } else {
-        scanBtn.disabled = true;
-        scanBtn.classList.add('cursor-not-allowed', 'opacity-50');
-      }
-    }
-
-    // =========================================================================
-    // Groq AI Safety Agent Request
-    // =========================================================================
-    function scanRoadSafety() {
-      const route = routesData && routesData[selectedCategory];
-      if (!route) {
-        showInlineError('Please analyze routes and select one before scanning.');
+    function updateMapRoute() {
+      const srcText = inputSrc.value.trim();
+      const dstText = inputDst.value.trim();
+      if (!srcText && !dstText) {
+        clearMapElements();
+        const coords = CITY_COORDS[state.city];
+        if (coords) map.setView([coords.lat, coords.lng], 12);
         return;
       }
 
-      clearInlineError();
-      scanBtn.disabled = true;
-      scanBtn.innerHTML = `<span class="material-symbols-outlined text-[15px] animate-spin">sync</span> Scanning...`;
+      if (!srcText || !dstText) return;
+
+      const cityStr = state.city;
+      const cityCenter = CITY_COORDS[cityStr] || { lat: 31.5497, lng: 74.3436 };
       
-      safetyOutput.classList.remove('hidden');
-      safetyBadge.className = 'px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono bg-slate-800 text-slate-400';
-      safetyBadge.textContent = 'SCANNING...';
-      safetyText.innerHTML = `<span class="italic text-slate-500 animate-pulse block">Running live route safety analysis...</span>`;
+      const coordPattern = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
 
-      const originName = originInput.value.split(',')[0].trim() || 'Origin Location';
-      const destName = destInput.value.split(',')[0].trim() || 'Destination Location';
-      const distance = route.distance;
+      // 1. Resolve Origin Coordinates
+      let srcPromise;
+      if (markerSrc && srcText === lastSrcAddress) {
+        srcPromise = Promise.resolve({ lat: markerSrc.getLatLng().lat, lng: markerSrc.getLatLng().lng });
+      } else if (coordPattern.test(srcText)) {
+        const match = srcText.match(coordPattern);
+        srcPromise = Promise.resolve({ lat: parseFloat(match[1]), lng: parseFloat(match[2]) });
+      } else {
+        const localSrc = getLocalGeocode(srcText, cityStr);
+        if (localSrc) {
+          srcPromise = Promise.resolve(localSrc);
+        } else {
+          const urlSrc = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(srcText + ', ' + cityStr + ', Pakistan')}&limit=1`;
+          srcPromise = fetch(urlSrc)
+            .then(r => r.json())
+            .then(res => {
+              if (Array.isArray(res) && res.length > 0) {
+                return { lat: parseFloat(res[0].lat), lng: parseFloat(res[0].lon) };
+              }
+              return null;
+            })
+            .catch(() => null);
+        }
+      }
 
-      // Extract waypoints & representative coordinate
-      const coords = route.geometry.coordinates; // array of [lon, lat]
-      const midIndex = Math.floor(coords.length / 2);
-      const midPoint = coords[midIndex];
-      const repLat = midPoint[1];
-      const repLon = midPoint[0];
+      // 2. Resolve Destination Coordinates
+      let dstPromise;
+      if (markerDst && dstText === lastDstAddress) {
+        dstPromise = Promise.resolve({ lat: markerDst.getLatLng().lat, lng: markerDst.getLatLng().lng });
+      } else if (coordPattern.test(dstText)) {
+        const match = dstText.match(coordPattern);
+        dstPromise = Promise.resolve({ lat: parseFloat(match[1]), lng: parseFloat(match[2]) });
+      } else {
+        const localDst = getLocalGeocode(dstText, cityStr);
+        if (localDst) {
+          dstPromise = Promise.resolve(localDst);
+        } else {
+          const urlDst = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dstText + ', ' + cityStr + ', Pakistan')}&limit=1`;
+          dstPromise = fetch(urlDst)
+            .then(r => r.json())
+            .then(res => {
+              if (Array.isArray(res) && res.length > 0) {
+                return { lat: parseFloat(res[0].lat), lng: parseFloat(res[0].lon) };
+              }
+              return null;
+            })
+            .catch(() => null);
+        }
+      }
 
-      // Bounding box for TomTom: minLon,minLat,maxLon,maxLat expanded by 0.5 degrees
-      let minLat = Infinity, maxLat = -Infinity;
-      let minLon = Infinity, maxLon = -Infinity;
-      coords.forEach(pt => {
-        const lon = pt[0];
-        const lat = pt[1];
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat) maxLat = lat;
-        if (lon < minLon) minLon = lon;
-        if (lon > maxLon) maxLon = lon;
+      Promise.all([srcPromise, dstPromise])
+      .then(([srcRes, dstRes]) => {
+        let latSrc = srcRes ? srcRes.lat : (cityCenter.lat + 0.006);
+        let lngSrc = srcRes ? (srcRes.lng || srcRes.lon) : (cityCenter.lng - 0.006);
+        let latDst = dstRes ? dstRes.lat : (cityCenter.lat - 0.006);
+        let lngDst = dstRes ? (dstRes.lng || dstRes.lon) : (cityCenter.lng + 0.006);
+        
+        plotRouteOnMap(latSrc, lngSrc, latDst, lngDst);
       });
-      minLat -= 0.5;
-      maxLat += 0.5;
-      minLon -= 0.5;
-      maxLon += 0.5;
-      const bbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+    }
+
+    function plotRouteOnMap(lat1, lng1, lat2, lng2) {
+      clearMapElements();
+
+      // Create Custom Neon Green Pulsing Marker A (Draggable)
+      const greenIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: '<div class="w-5 h-5 bg-emerald-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center relative"><div class="absolute inset-0 rounded-full bg-emerald-400 opacity-75 animate-ping"></div><div class="w-1.5 h-1.5 bg-white rounded-full relative z-10"></div></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      markerSrc = L.marker([lat1, lng1], { icon: greenIcon, draggable: true }).addTo(map)
+        .bindPopup(`<b>Origin</b>: ${inputSrc.value.trim()}`);
+
+      markerSrc.on('dragend', () => {
+        reverseGeocode(markerSrc.getLatLng().lat, markerSrc.getLatLng().lng, 'src');
+      });
+
+      // Create Custom Red Marker B (Draggable)
+      const redIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: '<div class="w-5 h-5 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center relative"><div class="w-1.5 h-1.5 bg-white rounded-full relative z-10"></div></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      markerDst = L.marker([lat2, lng2], { icon: redIcon, draggable: true }).addTo(map)
+        .bindPopup(`<b>Destination</b>: ${inputDst.value.trim()}`);
+
+      markerDst.on('dragend', () => {
+        reverseGeocode(markerDst.getLatLng().lat, markerDst.getLatLng().lng, 'dst');
+      });
+
+      // Route dashed neon polyline
+      routeLine = L.polyline([[lat1, lng1], [lat2, lng2]], {
+        color: '#00ff9d',
+        weight: 4,
+        dashArray: '6, 9',
+        className: 'neon-route-line'
+      }).addTo(map);
+
+      // Fit map bounds to show route
+      const group = new L.featureGroup([markerSrc, markerDst]);
+      map.fitBounds(group.getBounds().pad(0.25));
+    }
+
+    function clearMapElements() {
+      if (markerSrc) { map.removeLayer(markerSrc); markerSrc = null; }
+      if (markerDst) { map.removeLayer(markerDst); markerDst = null; }
+      if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+      if (ecoRouteLine) { map.removeLayer(ecoRouteLine); ecoRouteLine = null; }
+      if (altRouteLine) { map.removeLayer(altRouteLine); altRouteLine = null; }
+      hazardCircles.forEach(c => map.removeLayer(c));
+      hazardCircles = [];
+    }
+
+    // =========================================================================
+    // Step 3: Run Loader & Fetch API
+    // =========================================================================
+    function runHazardScan() {
+      // Setup display
+      viewStep2.classList.add('hidden');
+      viewStep3.classList.remove('hidden');
+      loaderContainer.classList.remove('hidden');
+      errorPanel.classList.add('hidden');
+      resultsPanel.classList.add('hidden');
+      updateStepIndicator(3);
+
+      let scanFinished = false;
+      let scanResult = null;
+      let optimizeResult = null;
+      let scanError = null;
 
       const BACKEND_URL = 'http://localhost:8000';
 
-      // 4 API calls in parallel
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${repLat}&longitude=${repLon}&current=temperature_2m,precipitation,windspeed_10m,weathercode`;
-      const trafficUrl = `${BACKEND_URL}/api/traffic/incidents?bbox=${bbox}`;
-      const openaqUrl = `https://api.openaq.org/v2/latest?coordinates=${repLat},${repLon}&radius=25000`;
-      const disastersUrl = `https://api.reliefweb.int/v1/disasters?appname=routeapp&query[value]=Pakistan&filter[field]=status&filter[value]=ongoing`;
-
-      Promise.all([
-        fetch(weatherUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) })),
-        fetch(trafficUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) })),
-        fetch(openaqUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) })),
-        fetch(disastersUrl).then(res => res.ok ? res.json() : Promise.reject(`HTTP ${res.status}`)).catch(err => ({ error: true, message: String(err) }))
-      ])
-      .then(([weatherRes, trafficRes, openaqRes, disastersRes]) => {
-        const weatherPayload = (weatherRes && !weatherRes.error) ? weatherRes : { status: "unavailable", error: weatherRes?.message || "Failed to fetch weather data" };
-        const trafficPayload = (trafficRes && !trafficRes.error) ? trafficRes : { status: "unavailable", error: trafficRes?.message || "Failed to fetch traffic incidents" };
-        const aqPayload = (openaqRes && !openaqRes.error) ? openaqRes : { status: "unavailable", error: openaqRes?.message || "Failed to fetch air quality data" };
-        const disasterPayload = (disastersRes && !disastersRes.error) ? disastersRes : { status: "unavailable", error: disastersRes?.message || "Failed to fetch disaster alerts" };
-
-        const analyzeBody = {
-          origin: originName,
-          destination: destName,
-          distance: distance,
-          rep_coord: { lat: repLat, lng: repLon },
-          waypoints: coords,
-          weather: weatherPayload,
-          traffic: trafficPayload,
-          air_quality: aqPayload,
-          disasters: disasterPayload
-        };
-
-        return fetch(`${BACKEND_URL}/api/routes/analyze`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(analyzeBody)
-        });
+      // 1. Fetch backend API route safety wizard
+      const wizardPromise = fetch(`${BACKEND_URL}/api/routes/safety-wizard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: state.city,
+          source: state.source,
+          destination: state.destination,
+          timestamp: new Date().toISOString()
+        })
       })
       .then(res => {
-        if (!res.ok) {
-          return res.json().then(errData => {
-            throw new Error(errData.detail || `Server returned ${res.status}`);
-          });
-        }
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
         return res.json();
       })
       .then(data => {
@@ -1052,93 +1486,474 @@
         if (typeof analysis === 'string') {
           analysis = JSON.parse(analysis);
         }
-        displayAnalysis(analysis);
-      })
-      .catch(err => {
-        console.error(err);
-        safetyBadge.textContent = 'ERROR';
-        safetyBadge.className = 'px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono bg-red-950/40 text-red-400 border border-red-500/40';
-        safetyText.innerHTML = `<span class="text-red-400 font-mono text-[10.5px]">Analysis error: ${err.message}</span>`;
-      })
-      .finally(() => {
-        scanBtn.disabled = false;
-        scanBtn.innerHTML = `<span class="material-symbols-outlined text-[15px]">security</span> Scan for Hazards`;
-        toggleScanButtonState();
+        scanResult = analysis;
       });
-    }
 
-    function displayAnalysis(analysis) {
-      safetyOutput.classList.remove('hidden');
-
-      let rating = 'CAUTION';
-      let badgeClass = 'bg-amber-950/40 text-amber-400 border border-amber-500/40';
-      const rec = (analysis.recommendation || '').toLowerCase();
-      if (rec.includes('proceed') || rec.includes('safe')) {
-        rating = 'PROCEED';
-        badgeClass = 'bg-emerald-950/40 text-emerald-400 border border-emerald-500/40';
-      } else if (rec.includes('avoid') || rec.includes('dangerous') || rec.includes('danger')) {
-        rating = 'AVOID';
-        badgeClass = 'bg-red-950/40 text-red-400 border border-red-500/40';
-      } else if (rec.includes('alternate') || rec.includes('caution')) {
-        rating = 'ALT ROUTE';
-        badgeClass = 'bg-amber-950/40 text-amber-400 border border-amber-500/40';
-      } else {
-        rating = rec.toUpperCase() || 'CAUTION';
+      // 2. Fetch backend route details (Eco + Alternative path coordinates & stats)
+      const cityCoords = CITY_COORDS[state.city] || { lat: 31.5497, lng: 74.3436 };
+      let latSrcVal = cityCoords.lat;
+      let lngSrcVal = cityCoords.lng;
+      if (markerSrc) {
+        latSrcVal = markerSrc.getLatLng().lat;
+        lngSrcVal = markerSrc.getLatLng().lng;
+      }
+      let latDstVal = cityCoords.lat + 0.005;
+      let lngDstVal = cityCoords.lng + 0.005;
+      if (markerDst) {
+        latDstVal = markerDst.getLatLng().lat;
+        lngDstVal = markerDst.getLatLng().lng;
       }
 
-      const score = analysis.safety_score || '-';
-      safetyBadge.textContent = `${rating} (${score}/10)`;
-      safetyBadge.className = `px-2 py-0.5 text-[10px] font-extrabold uppercase rounded font-mono ${badgeClass}`;
+      const optimizePromise = fetch(`${BACKEND_URL}/api/routes/optimize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: localStorage.getItem('verdex_user')
+            ? JSON.parse(localStorage.getItem('verdex_user')).user_id
+            : 'demo-user-00000000-0000-0000-0000-000000000001',
+          origin: { lat: latSrcVal, lng: lngSrcVal },
+          destination: { lat: latDstVal, lng: lngDstVal },
+          preferences: { max_walk_time_mins: 10 },
+          persist: false // get coordinates without saving to history yet!
+        })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        optimizeResult = data;
+      });
 
-      safetyText.innerHTML = `
-        <div class="space-y-2.5 mt-2">
-          <div class="flex items-start gap-2">
-            <span class="material-symbols-outlined text-[15px] text-sky-400 mt-0.5">partly_cloudy_day</span>
-            <div class="flex-1">
-              <span class="font-bold text-[10px] text-sky-400 uppercase tracking-wide">Weather Summary</span>
-              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.weather_summary || 'N/A'}</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-2">
-            <span class="material-symbols-outlined text-[15px] text-amber-400 mt-0.5">warning</span>
-            <div class="flex-1">
-              <span class="font-bold text-[10px] text-amber-400 uppercase tracking-wide">Traffic & Blockages</span>
-              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.traffic_warning || 'N/A'}</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-2">
-            <span class="material-symbols-outlined text-[15px] text-orange-400 mt-0.5">construction</span>
-            <div class="flex-1">
-              <span class="font-bold text-[10px] text-orange-400 uppercase tracking-wide">Incidents & Construction</span>
-              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.incidents_construction || 'N/A'}</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-2">
-            <span class="material-symbols-outlined text-[15px] text-emerald-400 mt-0.5">air</span>
-            <div class="flex-1">
-              <span class="font-bold text-[10px] text-emerald-400 uppercase tracking-wide">Air Quality Advisory</span>
-              <p class="text-[10.5px] text-slate-300 leading-normal">${analysis.air_quality_advisory || 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-      `;
+      // Wait for both APIs to resolve
+      Promise.all([wizardPromise, optimizePromise])
+      .then(() => {
+        scanFinished = true;
+        safetyWizardAnalysis = scanResult;
+        routeOptimizationResult = optimizeResult;
+        checkLoaderResolution();
+      })
+      .catch(err => {
+        scanFinished = true;
+        scanError = err;
+        checkLoaderResolution();
+      });
+
+      // 3. Initiate terminal loading progress bar animation
+      let progress = 0;
+      loadBarFill.style.width = '0%';
+      loadPercentage.textContent = '0%';
+      consoleLogs.innerHTML = '<div class="text-terminal-accent">> INITIATING CRITICAL SEARCH CORES...</div>';
+      
+      const logs = [
+        { time: 200, text: "> CONNECTING TO ANTHROPIC APEX ROUTER..." },
+        { time: 500, text: `> ACQUIRING WEATHER TELEMETRY FOR ${state.city.toUpperCase()}...` },
+        { time: 900, text: "> QUERYING TRAFFIC INCIDENTS & CONGESTION LOGS..." },
+        { time: 1300, text: `> SCANNING PATH METRICS: ${state.source.toUpperCase()} -> ${state.destination.toUpperCase()}...` },
+        { time: 1700, text: "> EVALUATING AIR QUALITY PARTICULATE RATINGS..." },
+        { time: 2000, text: "> FORMULATING DUAL HAZARD AUDIT SUMMARY..." }
+      ];
+
+      logs.forEach(log => {
+        setTimeout(() => {
+          if (activeStep === 3 && !loaderContainer.classList.contains('hidden')) {
+            const div = document.createElement('div');
+            div.className = 'log-row text-slate-400';
+            div.textContent = log.text;
+            consoleLogs.appendChild(div);
+            consoleLogs.scrollTop = consoleLogs.scrollHeight;
+          }
+        }, log.time);
+      });
+
+      const progressInterval = setInterval(() => {
+        progress += 2;
+        if (progress > 98 && !scanFinished) {
+          progress = 98;
+        }
+        if (progress > 100) progress = 100;
+
+        loadPercentage.textContent = `${progress}%`;
+        loadBarFill.style.width = `${progress}%`;
+
+        const totalBlocks = 20;
+        const filledBlocks = Math.round((progress / 100) * totalBlocks);
+        let barStr = '[';
+        for (let i = 0; i < totalBlocks; i++) {
+          barStr += i < filledBlocks ? '█' : '░';
+        }
+        barStr += ']';
+        loadBarText.textContent = barStr;
+
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          setTimeout(() => {
+            loaderFinished = true;
+            checkLoaderResolution();
+          }, 200);
+        }
+      }, 50);
+
+      let loaderFinished = false;
+
+      function checkLoaderResolution() {
+        if (scanFinished && loaderFinished) {
+          loaderContainer.classList.add('hidden');
+          if (scanError) {
+            errorPanel.classList.remove('hidden');
+            errorText.textContent = `Hazard scanner experienced a telemetry fault: ${scanError.message || "Endpoint Timeout"}.`;
+          } else {
+            renderScanResultsInit();
+          }
+        }
+      }
     }
 
     // =========================================================================
-    // Inline Errors & Notifications
+    // Hazard Tile Toggle Expand
     // =========================================================================
-    function showInlineError(msg) {
-      errorMessage.textContent = msg;
-      inlineError.classList.remove('hidden');
-      setTimeout(() => {
-        clearInlineError();
-      }, 7000);
+    function toggleHazardTile(tile) {
+      const wasExpanded = tile.classList.contains('expanded');
+      // Close all tiles first (accordion behavior)
+      document.querySelectorAll('.hazard-tile.expanded').forEach(t => {
+        t.classList.remove('expanded');
+      });
+      // Toggle clicked tile
+      if (!wasExpanded) {
+        tile.classList.add('expanded');
+      }
     }
 
-    function clearInlineError() {
-      inlineError.classList.add('hidden');
+    // =========================================================================
+    // Initial Render of Polylines and Fit Bounds
+    // =========================================================================
+    function renderScanResultsInit() {
+      resultsPanel.classList.remove('hidden');
+
+      // Clear the straight dashed preview line
+      if (routeLine) {
+        map.removeLayer(routeLine);
+        routeLine = null;
+      }
+
+      // Draw Eco Route Polyline (Emerald Green)
+      if (routeOptimizationResult && routeOptimizationResult.eco_route) {
+        const coords = routeOptimizationResult.eco_route.path_coordinates;
+        ecoRouteLine = L.polyline(coords, {
+          color: '#10b981',
+          weight: 5,
+          className: 'neon-route-line-eco'
+        }).addTo(map);
+      }
+
+      // Draw Alternative Route Polyline (Cyan/Blue)
+      if (routeOptimizationResult && routeOptimizationResult.alt_route) {
+        const coords = routeOptimizationResult.alt_route.path_coordinates;
+        altRouteLine = L.polyline(coords, {
+          color: '#38bdf8',
+          weight: 3.5,
+          dashArray: '5, 8',
+          className: 'neon-route-line-alt'
+        }).addTo(map);
+      }
+
+      // Fit bounds to both routes
+      if (map && (ecoRouteLine || altRouteLine)) {
+        const group = new L.featureGroup([
+          ecoRouteLine || markerSrc,
+          altRouteLine || markerDst
+        ].filter(Boolean));
+        map.fitBounds(group.getBounds().pad(0.15));
+      }
+
+      // Default to Eco Route tab
+      switchRouteTab('eco');
     }
 
+    // =========================================================================
+    // Route Selection Tabs Switching
+    // =========================================================================
+    function switchRouteTab(routeType) {
+      activeRouteType = routeType;
+      
+      const tabEco = document.getElementById('tab-eco');
+      const tabAlt = document.getElementById('tab-alt');
+      
+      if (routeType === 'eco') {
+        tabEco.className = 'py-1.5 px-2 rounded font-bold text-center text-terminal-accent bg-terminal-accent/10 border border-terminal-accent/20 cursor-pointer shadow-[0_0_8px_rgba(0,255,157,0.1)] transition duration-200';
+        tabAlt.className = 'py-1.5 px-2 rounded font-bold text-center text-slate-500 border border-transparent hover:text-slate-300 transition duration-200 cursor-pointer';
+      } else {
+        tabAlt.className = 'py-1.5 px-2 rounded font-bold text-center text-[#00d2ff] bg-[#00d2ff]/10 border border-[#00d2ff]/20 cursor-pointer shadow-[0_0_8px_rgba(0,210,255,0.1)] transition duration-200';
+        tabEco.className = 'py-1.5 px-2 rounded font-bold text-center text-slate-500 border border-transparent hover:text-slate-300 transition duration-200 cursor-pointer';
+      }
+
+      // Update Map Highlight
+      updateMapHighlight();
+      
+      // Get the correct route stats and hazard data
+      const analysis = safetyWizardAnalysis ? safetyWizardAnalysis[routeType] : null;
+      const routeData = routeOptimizationResult ? (routeType === 'eco' ? routeOptimizationResult.eco_route : routeOptimizationResult.alt_route) : null;
+      
+      if (analysis) {
+        renderRouteSpecificHazards(analysis, routeType);
+      }
+      
+      if (routeData) {
+        renderRouteSpecificStats(routeData);
+      }
+    }
+
+    // =========================================================================
+    // Map Highlight Styling Toggle
+    // =========================================================================
+    function updateMapHighlight() {
+      if (activeRouteType === 'eco') {
+        if (ecoRouteLine) {
+          ecoRouteLine.setStyle({ weight: 5.5, opacity: 1.0, dashArray: null });
+          ecoRouteLine.bringToFront();
+        }
+        if (altRouteLine) {
+          altRouteLine.setStyle({ weight: 3.0, opacity: 0.45, dashArray: '5, 8' });
+        }
+      } else {
+        if (altRouteLine) {
+          altRouteLine.setStyle({ weight: 5.5, opacity: 1.0, dashArray: null });
+          altRouteLine.bringToFront();
+        }
+        if (ecoRouteLine) {
+          ecoRouteLine.setStyle({ weight: 3.0, opacity: 0.45, dashArray: '5, 8' });
+        }
+      }
+    }
+
+    // =========================================================================
+    // Stats Rendering
+    // =========================================================================
+    function renderRouteSpecificStats(routeData) {
+      document.getElementById('route-txt-mode').textContent = routeData.mode;
+      document.getElementById('route-txt-distance').textContent = `${routeData.distance_km} km`;
+      document.getElementById('route-txt-time').textContent = `${routeData.total_time_mins} min`;
+      document.getElementById('route-txt-co2').textContent = `${routeData.co2_saved_kg} kg`;
+    }
+
+    // =========================================================================
+    // Dynamic Hazards Rendering
+    // =========================================================================
+    function renderRouteSpecificHazards(analysis, routeType) {
+      // Collapse all tiles on fresh render
+      document.querySelectorAll('.hazard-tile.expanded').forEach(t => t.classList.remove('expanded'));
+
+      const rating = analysis.safety_rating || 5;
+      const verdict = (analysis.verdict || 'CAUTION').toUpperCase();
+      
+      txtRating.textContent = `${rating}/10`;
+      badgeVerdict.textContent = verdict;
+
+      // Verdict styling reset
+      badgeVerdict.className = 'px-3 py-1.5 border rounded text-[10px] font-bold tracking-widest uppercase font-mono ';
+      
+      let routeColor = '#ff8800';
+      if (verdict === 'PROCEED') {
+        badgeVerdict.classList.add('border-terminal-accent', 'text-terminal-accent', 'bg-terminal-accentDim', 'glow-text-green');
+        routeColor = '#00ff9d';
+      } else if (verdict === 'AVOID') {
+        badgeVerdict.classList.add('border-terminal-danger', 'text-terminal-danger', 'bg-terminal-danger/10');
+        routeColor = '#ff4a4a';
+      } else {
+        badgeVerdict.classList.add('border-terminal-warning', 'text-terminal-warning', 'bg-terminal-warning/10');
+        routeColor = '#ff8800';
+      }
+
+      // Update map route color dynamically for the active route line
+      if (ecoRouteLine) {
+        ecoRouteLine.setStyle({ color: routeType === 'eco' ? routeColor : '#10b981' });
+      }
+      if (altRouteLine) {
+        altRouteLine.setStyle({ color: routeType === 'alternative' ? routeColor : '#38bdf8' });
+      }
+
+      // Add simulated warning circles on the map centered on the active path
+      hazardCircles.forEach(c => map.removeLayer(c));
+      hazardCircles = [];
+      
+      const activeLine = routeType === 'eco' ? ecoRouteLine : altRouteLine;
+      if (map && activeLine) {
+        const coords = activeLine.getLatLngs();
+        if (coords && coords.length >= 2) {
+          const midIdx = Math.floor(coords.length / 2);
+          const midPt = coords[midIdx];
+
+          if (verdict !== 'PROCEED') {
+            const circleColor = verdict === 'AVOID' ? '#ff4a4a' : '#ff8800';
+            const popupMsg = verdict === 'AVOID' 
+              ? `<b>⚠️ HAZARD DETECTED</b><br/>Major blockage and safety incident reported on active route corridor.` 
+              : `<b>⚠️ CAUTION ADVISORY</b><br/>Minor construction and slow traffic speeds detected.`;
+            const circ = L.circle([midPt.lat, midPt.lng], {
+              radius: 200, color: circleColor, fillColor: circleColor, fillOpacity: 0.25, weight: 1.5
+            }).addTo(map).bindPopup(popupMsg);
+            hazardCircles.push(circ);
+            map.setView([midPt.lat, midPt.lng], 13);
+          }
+        }
+      }
+
+      // ---- Populate summary lines ----
+      txtWeather.textContent = analysis.weather_summary || 'N/A';
+      txtTraffic.textContent = analysis.traffic_warning || 'N/A';
+      txtIncidents.textContent = analysis.incidents_construction || 'N/A';
+      txtAir.textContent = analysis.air_quality_advisory || 'N/A';
+
+      // ---- Populate severity chips ----
+      const chipW = document.getElementById('chip-weather');
+      const chipT = document.getElementById('chip-traffic');
+      const chipI = document.getElementById('chip-incidents');
+      const chipA = document.getElementById('chip-air');
+
+      // Derive severity per category from the analysis
+      const weatherSev = analysis.weather_severity || (rating >= 8 ? 'LOW' : rating >= 5 ? 'MODERATE' : 'HIGH');
+      const trafficSev = analysis.traffic_severity || (verdict === 'PROCEED' ? 'LOW' : verdict === 'CAUTION' ? 'MODERATE' : 'SEVERE');
+      const incidentSev = analysis.incident_severity || (verdict === 'PROCEED' ? 'CLEAR' : verdict === 'CAUTION' ? 'MINOR' : 'MAJOR');
+      const airSev = analysis.air_severity || (rating >= 7 ? 'GOOD' : rating >= 4 ? 'MODERATE' : 'POOR');
+
+      chipW.textContent = weatherSev;
+      chipT.textContent = trafficSev;
+      chipI.textContent = incidentSev;
+      chipA.textContent = airSev;
+
+      // ---- Populate expanded detail sections ----
+      // Weather details
+      const detWTemp = document.getElementById('det-weather-temp');
+      const detWVis = document.getElementById('det-weather-vis');
+      const detWAdv = document.getElementById('det-weather-adv');
+      detWTemp.textContent = analysis.weather_detail_temp || extractTemp(analysis.weather_summary);
+      detWVis.textContent = analysis.weather_detail_vis || extractVisibility(analysis.weather_summary);
+      detWAdv.textContent = analysis.weather_detail_advisory || getWeatherAdvisory(weatherSev, state.city);
+
+      // Traffic details
+      const detTLevel = document.getElementById('det-traffic-level');
+      const detTDelay = document.getElementById('det-traffic-delay');
+      const detTRec = document.getElementById('det-traffic-rec');
+      detTLevel.textContent = analysis.traffic_detail_level || getTrafficLevel(trafficSev);
+      detTDelay.textContent = analysis.traffic_detail_delay || getTrafficDelay(trafficSev);
+      detTRec.textContent = analysis.traffic_detail_rec || getTrafficRec(trafficSev, state.source, state.destination);
+
+      // Incident details
+      const detIActive = document.getElementById('det-incidents-active');
+      const detIConstr = document.getElementById('det-incidents-constr');
+      const detIRoad = document.getElementById('det-incidents-road');
+      detIActive.textContent = analysis.incident_detail_active || getIncidentActive(incidentSev);
+      detIConstr.textContent = analysis.incident_detail_construction || getIncidentConstruction(incidentSev, state.city);
+      detIRoad.textContent = analysis.incident_detail_road || getIncidentRoad(incidentSev);
+
+      // Air Quality details
+      const detAPM = document.getElementById('det-air-pm');
+      const detAHealth = document.getElementById('det-air-health');
+      const detAPrec = document.getElementById('det-air-precaution');
+      detAPM.textContent = analysis.air_detail_pm || getAirPM(airSev);
+      detAHealth.textContent = analysis.air_detail_health || getAirHealth(airSev);
+      detAPrec.textContent = analysis.air_detail_precaution || getAirPrecaution(airSev);
+    }
+
+    // =========================================================================
+    // Detail Extraction Helpers
+    // =========================================================================
+    function extractTemp(summary) {
+      if (!summary) return 'Data unavailable';
+      const match = summary.match(/(\d+)\s*°C/);
+      if (match) return `${match[1]}°C — ${parseInt(match[1]) > 33 ? 'Hot, stay hydrated' : parseInt(match[1]) < 20 ? 'Cool, layer up' : 'Comfortable range'}`;
+      return summary.substring(0, 60);
+    }
+    function extractVisibility(summary) {
+      if (!summary) return 'Data unavailable';
+      if (summary.toLowerCase().includes('clear')) return 'Clear skies, excellent visibility (>10 km)';
+      if (summary.toLowerCase().includes('cloudy')) return 'Partly cloudy, good visibility (6–10 km)';
+      if (summary.toLowerCase().includes('rain') || summary.toLowerCase().includes('fog')) return 'Reduced visibility (<5 km). Drive with caution.';
+      return 'Standard visibility conditions';
+    }
+    function getWeatherAdvisory(sev, city) {
+      if (sev === 'HIGH') return `Severe weather expected in ${city}. Postpone non-essential travel. Monitor local alerts.`;
+      if (sev === 'MODERATE') return `Mild weather disruption possible. Carry umbrella and allow extra travel time in ${city}.`;
+      return `No adverse weather warnings for ${city}. Safe for all modes of transport.`;
+    }
+    function getTrafficLevel(sev) {
+      if (sev === 'SEVERE') return 'Gridlock — Roads operating well below capacity. Expect stop-and-go conditions.';
+      if (sev === 'MODERATE') return 'Moderate congestion — 40–60% road capacity utilized. Intersections may have queues.';
+      return 'Free-flowing — Roads operating at normal capacity with minimal delays.';
+    }
+    function getTrafficDelay(sev) {
+      if (sev === 'SEVERE') return '+25–40 minutes over normal commute time';
+      if (sev === 'MODERATE') return '+8–15 minutes over normal commute time';
+      return 'No significant delays expected';
+    }
+    function getTrafficRec(sev, src, dst) {
+      if (sev === 'SEVERE') return `Avoid primary arteries from ${src}. Use secondary inner-city routes or delay departure by 30 min.`;
+      if (sev === 'MODERATE') return `Consider alternative side-roads between ${src} and ${dst}. Peak hour avoidance recommended.`;
+      return `Standard route from ${src} to ${dst} is clear. No detours needed.`;
+    }
+    function getIncidentActive(sev) {
+      if (sev === 'MAJOR') return '2–3 active incidents: vehicle collision and road closure reported near route corridor.';
+      if (sev === 'MINOR') return '1 minor incident: fender-bender or stalled vehicle. Traffic slow but moving.';
+      return 'No active incidents reported on this route segment.';
+    }
+    function getIncidentConstruction(sev, city) {
+      if (sev === 'MAJOR') return `Major road redevelopment in ${city}. Lane closures on key intersections. Expect heavy diversions.`;
+      if (sev === 'MINOR') return `Minor utility/patch repair work. Left lane narrowed at one point along the route.`;
+      return `No construction or maintenance zones on this path.`;
+    }
+    function getIncidentRoad(sev) {
+      if (sev === 'MAJOR') return 'Poor — Broken surface, potholes, and uneven patches. Drive slowly.';
+      if (sev === 'MINOR') return 'Fair — Generally smooth with occasional rough patches near construction zones.';
+      return 'Good — Well-maintained road surface throughout the route corridor.';
+    }
+    function getAirPM(sev) {
+      if (sev === 'POOR') return 'PM2.5: 90–150 µg/m³ (Unhealthy) | PM10: 120–200 µg/m³. Exceeds WHO safe limits.';
+      if (sev === 'MODERATE') return 'PM2.5: 35–55 µg/m³ (Moderate) | PM10: 50–90 µg/m³. Within acceptable range.';
+      return 'PM2.5: 10–25 µg/m³ (Good) | PM10: 20–40 µg/m³. Well within safe limits.';
+    }
+    function getAirHealth(sev) {
+      if (sev === 'POOR') return 'Sensitive groups (asthma, elderly, children) at risk. General public may experience irritation.';
+      if (sev === 'MODERATE') return 'Generally safe. Sensitive individuals may notice slight discomfort during extended outdoor exposure.';
+      return 'No health impact expected. Air quality is good for all groups including sensitive populations.';
+    }
+    function getAirPrecaution(sev) {
+      if (sev === 'POOR') return 'Wear N95 mask outdoors. Keep car windows closed. Use air recirculation mode in vehicles.';
+      if (sev === 'MODERATE') return 'Optional mask for sensitive individuals. Close windows during peak traffic hours.';
+      return 'No special precautions needed. Enjoy fresh air during commute.';
+    }
+
+    // =========================================================================
+    // Reset App State
+    // =========================================================================
+    function resetAll() {
+      // Clear inputs
+      citySelect.selectedIndex = 0;
+      inputSrc.value = '';
+      inputDst.value = '';
+      cardSrcLbl.textContent = 'Awaiting input...';
+      cardSrcLbl.className = 'italic text-slate-500';
+      cardDstLbl.textContent = 'Awaiting input...';
+      cardDstLbl.className = 'italic text-slate-500';
+      
+      btnGotoStep2.disabled = true;
+      btnGotoStep2.className = 'w-full py-2 bg-terminal-accent/10 border border-terminal-accent/30 text-slate-600 disabled:opacity-50 font-bold text-xs tracking-widest uppercase rounded transition-all duration-300 flex items-center justify-center gap-1.5 cursor-not-allowed';
+      
+      // Hide Step 3, display Step 1
+      viewStep3.classList.add('hidden');
+      resultsPanel.classList.add('hidden');
+      viewStep1.classList.remove('hidden');
+      
+      // Clear map markers and variables
+      clearMapElements();
+      activeRouteType = 'eco';
+      safetyWizardAnalysis = null;
+      routeOptimizationResult = null;
+      if (map) {
+        map.setView([30.3753, 69.3451], 5);
+      }
+      
+      updateStepIndicator(1);
+    }
   </script>
+
 </body>
 </html>

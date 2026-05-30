@@ -4,9 +4,10 @@ import type { CityMetrics } from '@/types';
 
 interface ImpactMetricsProps {
   metrics: CityMetrics;
+  city?: string;
 }
 
-export default function ImpactMetrics({ metrics }: ImpactMetricsProps) {
+export default function ImpactMetrics({ metrics, city = 'All' }: ImpactMetricsProps) {
   const getModeIcon = (mode: string) => {
     const lower = mode.toLowerCase();
     if (lower.includes('metro') || lower.includes('subway') || lower.includes('transit')) return 'subway';
@@ -19,10 +20,15 @@ export default function ImpactMetrics({ metrics }: ImpactMetricsProps) {
 
   return (
     <div className="panel-card">
-      <h3 className="panel-card-title">
+      <h3 className="panel-card-title" style={{ marginBottom: city ? 4 : 16 }}>
         <span className="material-symbols-outlined panel-card-title-icon text-primary">public</span>
         City-Wide Impact
       </h3>
+      {city && (
+        <div style={{ fontFamily: 'monospace', fontSize: '10px', letterSpacing: '10px', color: '#1aa876', textTransform: 'uppercase', marginBottom: 16 }}>
+          {city}
+        </div>
+      )}
 
       <div className="impact-grid">
         <div className="impact-item">

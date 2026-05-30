@@ -16,9 +16,10 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 interface CityHeatmapProps {
   monthlyTrend: MonthlyTrend[];
+  city?: string;
 }
 
-export default function CityHeatmap({ monthlyTrend }: CityHeatmapProps) {
+export default function CityHeatmap({ monthlyTrend, city = 'All' }: CityHeatmapProps) {
   const data = {
     labels: monthlyTrend.map((t) => t.month),
     datasets: [
@@ -81,10 +82,15 @@ export default function CityHeatmap({ monthlyTrend }: CityHeatmapProps) {
 
   return (
     <div className="panel-card">
-      <h3 className="panel-card-title">
+      <h3 className="panel-card-title" style={{ marginBottom: city ? 4 : 16 }}>
         <span className="material-symbols-outlined panel-card-title-icon text-primary">bar_chart</span>
         Monthly CO₂ Savings Trend
       </h3>
+      {city && (
+        <div style={{ fontFamily: 'monospace', fontSize: '10px', letterSpacing: '10px', color: '#1aa876', textTransform: 'uppercase', marginBottom: 16 }}>
+          {city}
+        </div>
+      )}
       <div className="chart-container">
         <Bar data={data} options={options} />
       </div>

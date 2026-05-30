@@ -15,6 +15,8 @@ export interface RouteRequest {
   preferences: {
     max_walk_time_mins: number;
   };
+  route_type?: 'eco' | 'alternative';
+  persist?: boolean;
 }
 
 export interface BestRoute {
@@ -24,9 +26,16 @@ export interface BestRoute {
   path_coordinates: [number, number][];
 }
 
+export interface RouteDetails extends BestRoute {
+  distance_km: number;
+  carbon_credits_earned: number;
+}
+
 export interface RouteResponse {
   status: 'success' | 'error';
-  best_route: BestRoute;
+  eco_route?: RouteDetails;
+  alt_route?: RouteDetails;
+  best_route?: RouteDetails;
   carbon_credits_earned: number;
 }
 
@@ -45,10 +54,12 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  token: string;
-  user_id: string;
+  token?: string;
+  user_id?: string;
   role: string;
   name: string;
+  status?: string;
+  message?: string;
 }
 
 export interface UserInfo {
@@ -108,3 +119,66 @@ export interface RouteHistory {
   co2_saved_kg: number;
   created_at: string;
 }
+
+export interface TripReportSummary {
+  total_co2_saved_kg: number;
+  total_trips: number;
+  total_time_hours: number;
+  carbon_credits_earned: number;
+  trees_equivalent: number;
+  cars_removed: number;
+  mode_breakdown: Record<string, number>;
+}
+
+export interface TripReportResponse {
+  status: string;
+  trips: RouteHistory[];
+  summary: TripReportSummary;
+}
+
+export interface LeaderboardEntry {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+  total_co2_saved_kg: number;
+  carbon_credits_earned: number;
+}
+
+export interface CongestionSummary {
+  total_flags: number;
+  peak_day: string;
+  worst_hour: string;
+  am_count: number;
+  pm_count: number;
+  am_ratio: number;
+  pm_ratio: number;
+}
+
+export interface CongestionBarData {
+  labels: string[];
+  am_data: number[];
+  pm_data: number[];
+}
+
+export interface CongestionLineData {
+  labels: string[];
+  data: number[];
+}
+
+export interface CongestionReportResponse {
+  status: string;
+  summary: CongestionSummary;
+  bar_chart: CongestionBarData;
+  line_chart: CongestionLineData;
+  corridors: string[];
+}
+
+export interface PendingPlannerRequest {
+  request_id: string;
+  name: string;
+  email: string;
+  created_at: string;
+}
+
+
