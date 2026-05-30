@@ -20,13 +20,14 @@ import type {
 // Verdex API Service — typed wrapper around the FastAPI backend
 // ============================================================
 
-// In production on Vercel, the backend is available at /_/backend
-// via experimentalServices routing. Locally we fall back to localhost:8000.
+// In production on Vercel, /api/* routes are forwarded to the Python
+// backend on the same domain via vercel.json "routes". So we use an
+// empty baseURL (same-origin). Locally we fall back to localhost:8000.
 const getBaseURL = () => {
   // Explicit env var always wins
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-  // Vercel production / preview — use relative path to same domain
-  if (process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL) return '/_/backend';
+  // Vercel production / preview — same origin, routes handle it
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') return '';
   // Local development
   return 'http://localhost:8000';
 };
@@ -34,7 +35,7 @@ const getBaseURL = () => {
 const api = axios.create({
   baseURL: getBaseURL(),
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000, // 15-second timeout (serverless cold-starts can be slow)
+  timeout: 30000, // 30-second timeout (serverless cold-starts can be slow)
 });
 
 // Attach JWT token to every outgoing request
